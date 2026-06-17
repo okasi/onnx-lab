@@ -67,13 +67,25 @@ function rowMetrics(r) {
   };
 }
 
-async function findLatestJson(prefix) {
-  const files = await fs.readdir(resultsDir);
-  const matches = files
-    .filter((f) => f.startsWith(prefix) && f.endsWith('.json'))
-    .sort()
-    .reverse();
-  return matches[0] ? path.join(resultsDir, matches[0]) : null;
+async function findLatestBenchmarkJson() {
+  const files = (await fs.readdir(resultsDir)).filter(
+    (f) => f.startsWith('benchmark') && f.endsWith('.json'),
+  );
+
+  const ranked = [];
+  for (const f of files) {
+    const filePath = path.join(resultsDir, f);
+    const data = await loadJson(filePath);
+    const variantCount = data.results?.length ?? 0;
+    if (variantCount < 15) {
+      continue;
+    }
+    const ts = Number(f.match(/(\d+)\.json$/)?.[1] ?? 0);
+    ranked.push({ filePath, ts });
+  }
+
+  ranked.sort((a, b) => b.ts - a.ts);
+  return ranked[0]?.filePath ?? null;
 }
 
 async function loadJson(file) {
@@ -83,6 +95,9 @@ async function loadJson(file) {
 function mergeResults(fullRun, gemmaRun) {
   const results = [...fullRun.results];
   const gemmaId = 'onnx-community/embeddinggemma-300m-ONNX';
+  if (results.some((r) => r.model_id === gemmaId && r.status === 'ok')) {
+    return results;
+  }
   const withoutGemma = results.filter((r) => r.model_id !== gemmaId);
   const gemmaRows = gemmaRun?.results ?? [];
   return [...withoutGemma, ...gemmaRows];
@@ -90,6 +105,10 @@ function mergeResults(fullRun, gemmaRun) {
 
 function buildMarkdown(run, results) {
   const ok = results.filter((r) => r.status === 'ok');
+  const peakRss = Math.max(
+    run.memory_peak_rss_mb ?? 0,
+    ...results.map((r) => r.memory?.peak_rss_mb ?? 0),
+  );
   const ranked = [...ok].sort(
     (a, b) => (b.quality?.composite_score ?? 0) - (a.quality?.composite_score ?? 0),
   );
@@ -106,7 +125,7 @@ function buildMarkdown(run, results) {
   lines.push(`| Generated | ${new Date().toISOString().slice(0, 10)} |`);
   lines.push(`| Source | \`${path.basename(run.source_file)}\`${run.gemma_source ? ` + \`${path.basename(run.gemma_source)}\`` : ''} |`);
   lines.push(`| Wall time | ${run.wall_time_human ?? formatDuration(run.wall_time_ms)} |`);
-  lines.push(`| Peak RSS | ${run.memory_peak_rss_mb ?? '—'} MB |`);
+  lines.push(`| Peak RSS | ${peakRss > 0 ? peakRss.toFixed(1) : '—'} MB |`);
   lines.push(`| Documents | ${run.documents_used ?? 54} |`);
   lines.push(`| Variants tested | ${results.length} |`);
   lines.push(`| Succeeded | ${ok.length} |`);
@@ -220,9 +239,7 @@ function buildMarkdown(run, results) {
 }
 
 async function main() {
-  const fullFile =
-    (await findLatestJson('benchmark-full-')) ?? (await findLatestJson('benchmark-'));
-  const gemmaFile = (await findLatestJson('benchmark-')) ;
+  const fullFile = await findLatestBenchmarkJson();
 
   if (!fullFile) {
     console.error('No benchmark JSON found in results/');
@@ -233,18 +250,28 @@ async function main() {
   fullRun.source_file = fullFile;
 
   let gemmaRun = null;
-  const allFiles = await fs.readdir(resultsDir);
-  const gemmaCandidates = allFiles
-    .filter((f) => f.startsWith('benchmark-') && f.endsWith('.json') && !f.includes('full'))
-    .sort()
-    .reverse();
+  const hasGemma = fullRun.results?.some(
+    (r) => r.model_id === 'onnx-community/embeddinggemma-300m-ONNX' && r.status === 'ok',
+  );
 
-  for (const f of gemmaCandidates) {
-    const data = await loadJson(path.join(resultsDir, f));
-    if (data.results?.some((r) => r.model_id === 'onnx-community/embeddinggemma-300m-ONNX' && r.status === 'ok')) {
-      gemmaRun = data;
-      fullRun.gemma_source = path.join(resultsDir, f);
-      break;
+  if (!hasGemma) {
+    const allFiles = await fs.readdir(resultsDir);
+    const gemmaCandidates = allFiles
+      .filter((f) => f.startsWith('benchmark-') && f.endsWith('.json') && !f.includes('full'))
+      .sort()
+      .reverse();
+
+    for (const f of gemmaCandidates) {
+      const data = await loadJson(path.join(resultsDir, f));
+      if (
+        data.results?.some(
+          (r) => r.model_id === 'onnx-community/embeddinggemma-300m-ONNX' && r.status === 'ok',
+        )
+      ) {
+        gemmaRun = data;
+        fullRun.gemma_source = path.join(resultsDir, f);
+        break;
+      }
     }
   }
 

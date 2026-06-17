@@ -379,7 +379,11 @@ async function main() {
 
   const outDir = path.join(root, 'results');
   await fs.mkdir(outDir, { recursive: true });
-  const outPath = args.output ?? path.join(outDir, `benchmark-${Date.now()}.json`);
+  const outPath = args.output
+    ?? path.join(
+      outDir,
+      args.quick || args.maxTexts ? `benchmark-${Date.now()}.json` : `benchmark-full-${Date.now()}.json`,
+    );
   await fs.writeFile(outPath, JSON.stringify(run, null, 2), 'utf8');
 
   printSummaryTable(run);
