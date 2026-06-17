@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "generate:corpus": "node scripts/generate-corpus.mjs",
-    "benchmark": "node scripts/benchmark.mjs",
-    "benchmark:quick": "node scripts/benchmark.mjs --quick",
-    "benchmark:smoke": "node scripts/benchmark.mjs --max-texts 3 --dtype q4,int8,q4f16"
+    "benchmark": "node --expose-gc scripts/benchmark.mjs",
+    "benchmark:quick": "node --expose-gc scripts/benchmark.mjs --quick",
+    "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,fp16,int8,q4,q4f16,quantized,uint8"
   },
   "repository": {
     "type": "git",

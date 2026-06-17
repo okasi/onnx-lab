@@ -2,7 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFeatureExtractor, ModelRegistry } from '../lib/transformers-wasm.mjs';
-import { MODELS } from '../config/models.mjs';
+import {
+  BENCHMARK_DTYPES,
+  MODELS,
+  dtypeLabel,
+  normalizeDtype,
+} from '../config/models.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -13,7 +18,6 @@ function parseArgs(argv) {
     models: null,
     dtypes: null,
     maxTexts: null,
-    skipFp32: true,
     output: null,
   };
 
@@ -22,21 +26,23 @@ function parseArgs(argv) {
     if (arg === '--quick') {
       args.quick = true;
       args.maxTexts = 5;
-      args.skipFp32 = true;
-    } else if (arg === '--include-fp32') {
-      args.skipFp32 = false;
+      args.dtypes = ['q4', 'int8'];
     } else if (arg === '--max-texts') {
       args.maxTexts = Number(argv[++i]);
     } else if (arg === '--model') {
       args.models = argv[++i].split(',');
     } else if (arg === '--dtype') {
-      args.dtypes = argv[++i].split(',');
+      args.dtypes = argv[++i].split(',').map(normalizeDtype);
     } else if (arg === '--output') {
       args.output = argv[++i];
     } else if (arg === '--help') {
       printHelp();
       process.exit(0);
     }
+  }
+
+  if (!args.dtypes) {
+    args.dtypes = [...BENCHMARK_DTYPES];
   }
 
   return args;
@@ -46,11 +52,11 @@ function printHelp() {
   console.log(`Usage: node scripts/benchmark.mjs [options]
 
 Options:
-  --quick           Run a small subset (5 texts, skip fp32)
-  --include-fp32    Include fp32 (downloads large .onnx_data files)
+  --quick           Small subset (2 models, 5 docs, q4+int8)
   --max-texts N     Limit corpus documents embedded per variant
   --model id[,id]   Only benchmark specific model ids
-  --dtype d[,d]     Only benchmark specific dtypes
+  --dtype d[,d]     Quants to test (aliases: quantized → q8)
+                    Default: bnb4,fp16,int8,q4,q4f16,q8,uint8
   --output path     JSON results path (default: results/benchmark-<ts>.json)
 `);
 }
@@ -68,6 +74,13 @@ function cosineSimilarity(a, b) {
   return denom === 0 ? 0 : dot / denom;
 }
 
+function mean(values) {
+  if (values.length === 0) {
+    return 0;
+  }
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
 function percentile(values, p) {
   if (values.length === 0) {
     return 0;
@@ -77,18 +90,206 @@ function percentile(values, p) {
   return sorted[idx];
 }
 
+function round(n, digits = 2) {
+  return Number(n.toFixed(digits));
+}
+
 function summarizeTimings(values) {
   if (values.length === 0) {
-    return { count: 0, mean_ms: 0, p50_ms: 0, p95_ms: 0, min_ms: 0, max_ms: 0 };
+    return { count: 0, mean_ms: 0, p50_ms: 0, p95_ms: 0, min_ms: 0, max_ms: 0, total_ms: 0 };
   }
   const sum = values.reduce((acc, v) => acc + v, 0);
   return {
     count: values.length,
-    mean_ms: Number((sum / values.length).toFixed(2)),
-    p50_ms: Number(percentile(values, 50).toFixed(2)),
-    p95_ms: Number(percentile(values, 95).toFixed(2)),
-    min_ms: Number(Math.min(...values).toFixed(2)),
-    max_ms: Number(Math.max(...values).toFixed(2)),
+    mean_ms: round(sum / values.length),
+    p50_ms: round(percentile(values, 50)),
+    p95_ms: round(percentile(values, 95)),
+    min_ms: round(Math.min(...values)),
+    max_ms: round(Math.max(...values)),
+    total_ms: round(sum),
+  };
+}
+
+function snapshotMemory() {
+  const m = process.memoryUsage();
+  return {
+    rss_mb: round(m.rss / 1024 / 1024),
+    heap_used_mb: round(m.heapUsed / 1024 / 1024),
+    heap_total_mb: round(m.heapTotal / 1024 / 1024),
+    external_mb: round(m.external / 1024 / 1024),
+    array_buffers_mb: round((m.arrayBuffers ?? 0) / 1024 / 1024),
+  };
+}
+
+class MemoryMonitor {
+  constructor() {
+    this.peak = { rss_mb: 0, heap_used_mb: 0, external_mb: 0 };
+    this.interval = null;
+  }
+
+  start() {
+    this.sample();
+    this.interval = setInterval(() => this.sample(), 200);
+  }
+
+  sample() {
+    const s = snapshotMemory();
+    for (const key of ['rss_mb', 'heap_used_mb', 'external_mb']) {
+      if (s[key] > this.peak[key]) {
+        this.peak[key] = s[key];
+      }
+    }
+    return s;
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+    const at_end = this.sample();
+    return {
+      peak_rss_mb: this.peak.rss_mb,
+      peak_heap_used_mb: this.peak.heap_used_mb,
+      peak_external_mb: this.peak.external_mb,
+      at_end,
+    };
+  }
+}
+
+function computeQuality(embeddings, documents, queryPairs) {
+  const sameTopicSims = [];
+  const diffTopicSims = [];
+  const crossLangByTopic = { mortgage: [], legal: [], medical: [] };
+
+  for (let i = 0; i < documents.length; i += 1) {
+    for (let j = i + 1; j < documents.length; j += 1) {
+      const a = documents[i];
+      const b = documents[j];
+      const va = embeddings.get(a.id);
+      const vb = embeddings.get(b.id);
+      if (!va || !vb) {
+        continue;
+      }
+      const sim = cosineSimilarity(va, vb);
+      if (a.topic === b.topic) {
+        sameTopicSims.push(sim);
+        if (a.language !== b.language) {
+          crossLangByTopic[a.topic].push(sim);
+        }
+      } else {
+        diffTopicSims.push(sim);
+      }
+    }
+  }
+
+  let recall1 = 0;
+  let recall5 = 0;
+  let recall10 = 0;
+  const perTopicRetrieval = {};
+
+  for (const query of documents) {
+    const qv = embeddings.get(query.id);
+    if (!qv) {
+      continue;
+    }
+
+    const ranked = documents
+      .filter((d) => d.id !== query.id)
+      .map((d) => ({
+        id: d.id,
+        topic: d.topic,
+        language: d.language,
+        sim: cosineSimilarity(qv, embeddings.get(d.id)),
+      }))
+      .sort((a, b) => b.sim - a.sim);
+
+    const sameTopicCount = ranked.filter((r) => r.topic === query.topic).length;
+    if (sameTopicCount === 0) {
+      continue;
+    }
+
+    const top1 = ranked[0]?.topic === query.topic;
+    const top5 = ranked.slice(0, 5).some((r) => r.topic === query.topic);
+    const top10 = ranked.slice(0, 10).some((r) => r.topic === query.topic);
+
+    if (top1) {
+      recall1 += 1;
+    }
+    if (top5) {
+      recall5 += 1;
+    }
+    if (top10) {
+      recall10 += 1;
+    }
+
+    perTopicRetrieval[query.topic] ??= { recall1: 0, recall5: 0, count: 0 };
+    perTopicRetrieval[query.topic].count += 1;
+    if (top1) {
+      perTopicRetrieval[query.topic].recall1 += 1;
+    }
+    if (top5) {
+      perTopicRetrieval[query.topic].recall5 += 1;
+    }
+  }
+
+  const pairScores = queryPairs
+    .map((pair) => {
+      const sv = embeddings.get(pair.sv_doc_id);
+      const tr = embeddings.get(pair.tr_doc_id);
+      if (!sv || !tr) {
+        return null;
+      }
+      return {
+        pair_id: pair.id,
+        topic: pair.topic,
+        cosine_similarity: round(cosineSimilarity(sv, tr), 4),
+      };
+    })
+    .filter(Boolean);
+
+  const pairValues = pairScores.map((p) => p.cosine_similarity);
+  const cohesion = mean(sameTopicSims);
+  const separation = mean(diffTopicSims);
+
+  return {
+    topic_cohesion_mean: round(cohesion, 4),
+    topic_separation_mean: round(separation, 4),
+    topic_discrimination: round(cohesion - separation, 4),
+    cross_lingual_pairs: {
+      count: pairScores.length,
+      mean_cosine: round(mean(pairValues), 4),
+      min_cosine: pairScores.length ? round(Math.min(...pairValues), 4) : 0,
+      max_cosine: pairScores.length ? round(Math.max(...pairValues), 4) : 0,
+      by_topic: Object.fromEntries(
+        Object.entries(crossLangByTopic).map(([topic, vals]) => [
+          topic,
+          { count: vals.length, mean_cosine: round(mean(vals), 4) },
+        ]),
+      ),
+      pairs: pairScores,
+    },
+    retrieval: {
+      recall_at_1: round(recall1 / documents.length, 4),
+      recall_at_5: round(recall5 / documents.length, 4),
+      recall_at_10: round(recall10 / documents.length, 4),
+      by_topic: Object.fromEntries(
+        Object.entries(perTopicRetrieval).map(([topic, v]) => [
+          topic,
+          {
+            recall_at_1: round(v.recall1 / v.count, 4),
+            recall_at_5: round(v.recall5 / v.count, 4),
+            queries: v.count,
+          },
+        ]),
+      ),
+    },
+    composite_score: round(
+      mean(pairValues) * 0.4 +
+        (cohesion - separation) * 0.3 +
+        (recall5 / documents.length) * 0.3,
+      4,
+    ),
   };
 }
 
@@ -103,32 +304,24 @@ async function listVariants(model, args) {
     ? { model_file_name: model.model_file_name }
     : {};
 
-  let dtypes = [];
+  let available = [];
   try {
-    dtypes = await ModelRegistry.get_available_dtypes(model.id, registryOptions);
-  } catch (error) {
-    dtypes = [];
+    available = await ModelRegistry.get_available_dtypes(model.id, registryOptions);
+  } catch {
+    available = [];
   }
 
-  if (args.skipFp32) {
-    dtypes = dtypes.filter((d) => d !== 'fp32');
-  }
-
-  if (args.dtypes) {
-    dtypes = dtypes.filter((d) => args.dtypes.includes(d));
-  }
+  const requested = args.dtypes.map(normalizeDtype);
+  const dtypes = requested.filter((d) => available.includes(d));
 
   const variants = dtypes.map((dtype) => ({
-    label: dtype,
+    label: dtypeLabel(dtype),
     dtype,
     model_file_name: model.model_file_name ?? null,
   }));
 
   for (const extra of model.extra_variants ?? []) {
-    if (args.dtypes && !args.dtypes.includes(extra.dtype) && !args.dtypes.includes(extra.label)) {
-      continue;
-    }
-    if (args.skipFp32 && extra.dtype === 'fp32' && extra.label !== 'O4') {
+    if (!requested.includes(extra.dtype) && !requested.includes(extra.label)) {
       continue;
     }
     variants.push({
@@ -139,11 +332,14 @@ async function listVariants(model, args) {
     });
   }
 
-  return variants;
+  return { variants, available_dtypes: available };
 }
 
 async function benchmarkVariant({ model, variant, documents, queryPairs }) {
-  const startedAt = new Date().toISOString();
+  const wallStart = performance.now();
+  const memoryMonitor = new MemoryMonitor();
+  memoryMonitor.start();
+
   const result = {
     model_id: model.id,
     model_name: model.name,
@@ -151,11 +347,14 @@ async function benchmarkVariant({ model, variant, documents, queryPairs }) {
     dtype: variant.dtype,
     model_file_name: variant.model_file_name,
     status: 'pending',
-    started_at: startedAt,
+    started_at: new Date().toISOString(),
+    memory_at_start: snapshotMemory(),
     load_time_ms: null,
+    total_time_ms: null,
     embedding_dim: null,
     inference: null,
-    cross_lingual_pairs: null,
+    quality: null,
+    memory: null,
     error: null,
   };
 
@@ -169,7 +368,8 @@ async function benchmarkVariant({ model, variant, documents, queryPairs }) {
     }
 
     extractor = await createFeatureExtractor(model.id, options);
-    result.load_time_ms = Number((performance.now() - loadStart).toFixed(2));
+    result.load_time_ms = round(performance.now() - loadStart);
+    result.memory_after_load = snapshotMemory();
 
     const latencies = [];
     const embeddings = new Map();
@@ -186,37 +386,12 @@ async function benchmarkVariant({ model, variant, documents, queryPairs }) {
     }
 
     result.inference = summarizeTimings(latencies);
-
-    const pairScores = [];
-    for (const pair of queryPairs) {
-      const sv = embeddings.get(pair.sv_doc_id);
-      const tr = embeddings.get(pair.tr_doc_id);
-      if (!sv || !tr) {
-        continue;
-      }
-      pairScores.push({
-        pair_id: pair.id,
-        topic: pair.topic,
-        cosine_similarity: Number(cosineSimilarity(sv, tr).toFixed(4)),
-      });
-    }
-
-    if (pairScores.length > 0) {
-      const scores = pairScores.map((p) => p.cosine_similarity);
-      result.cross_lingual_pairs = {
-        count: pairScores.length,
-        mean_cosine: Number((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(4)),
-        min_cosine: Number(Math.min(...scores).toFixed(4)),
-        max_cosine: Number(Math.max(...scores).toFixed(4)),
-        pairs: pairScores,
-      };
-    }
-
+    result.quality = computeQuality(embeddings, documents, queryPairs);
     result.status = 'ok';
   } catch (error) {
     result.status = 'error';
     result.error = error instanceof Error ? error.message : String(error);
-    result.load_time_ms = Number((performance.now() - loadStart).toFixed(2));
+    result.load_time_ms = round(performance.now() - loadStart);
   } finally {
     if (extractor) {
       await extractor.dispose();
@@ -224,15 +399,128 @@ async function benchmarkVariant({ model, variant, documents, queryPairs }) {
     if (global.gc) {
       global.gc();
     }
+    result.memory = memoryMonitor.stop();
+    result.total_time_ms = round(performance.now() - wallStart);
+    result.finished_at = new Date().toISOString();
   }
 
-  result.finished_at = new Date().toISOString();
   return result;
+}
+
+function formatDuration(ms) {
+  const sec = Math.floor(ms / 1000);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) {
+    return `${h}h ${m}m ${s}s`;
+  }
+  if (m > 0) {
+    return `${m}m ${s}s`;
+  }
+  return `${s}s`;
+}
+
+function printSummaryTable(run) {
+  console.log('\n' + '='.repeat(120));
+  console.log('BENCHMARK SUMMARY');
+  console.log('='.repeat(120));
+  console.log(
+    [
+      'Model'.padEnd(28),
+      'Quant'.padEnd(18),
+      'Status'.padEnd(8),
+      'Total'.padStart(8),
+      'ms/doc'.padStart(8),
+      'RSS MB'.padStart(8),
+      'Quality'.padStart(8),
+      'XLing'.padStart(8),
+      'R@5'.padStart(8),
+    ].join(' '),
+  );
+  console.log('-'.repeat(120));
+
+  for (const r of run.results) {
+    const q = r.quality;
+    console.log(
+      [
+        r.model_name.slice(0, 27).padEnd(28),
+        String(r.variant).slice(0, 17).padEnd(18),
+        r.status.padEnd(8),
+        (r.total_time_ms ? `${Math.round(r.total_time_ms / 1000)}s` : '-').padStart(8),
+        (r.inference?.mean_ms ?? '-').toString().padStart(8),
+        (r.memory?.peak_rss_mb ?? '-').toString().padStart(8),
+        (q?.composite_score ?? '-').toString().padStart(8),
+        (q?.cross_lingual_pairs?.mean_cosine ?? '-').toString().padStart(8),
+        (q?.retrieval?.recall_at_5 ?? '-').toString().padStart(8),
+      ].join(' '),
+    );
+  }
+
+  console.log('-'.repeat(120));
+  console.log(`Wall time: ${formatDuration(run.wall_time_ms)}`);
+  console.log(`Peak RSS (run): ${run.memory_peak_rss_mb} MB`);
+  console.log(`Variants: ${run.summary.ok}/${run.summary.total_variants} succeeded`);
+  console.log('='.repeat(120));
+}
+
+function buildRunSummary(run) {
+  const ok = run.results.filter((r) => r.status === 'ok');
+  const byModel = {};
+
+  for (const r of ok) {
+    byModel[r.model_id] ??= {
+      model_name: r.model_name,
+      variants: [],
+    };
+    byModel[r.model_id].variants.push({
+      variant: r.variant,
+      dtype: r.dtype,
+      composite_score: r.quality?.composite_score,
+      cross_lingual_mean: r.quality?.cross_lingual_pairs?.mean_cosine,
+      recall_at_5: r.quality?.retrieval?.recall_at_5,
+      mean_ms: r.inference?.mean_ms,
+      peak_rss_mb: r.memory?.peak_rss_mb,
+      total_time_ms: r.total_time_ms,
+    });
+  }
+
+  for (const entry of Object.values(byModel)) {
+    entry.variants.sort((a, b) => (b.composite_score ?? 0) - (a.composite_score ?? 0));
+    entry.best_variant = entry.variants[0] ?? null;
+  }
+
+  return {
+    total_variants: run.results.length,
+    ok: ok.length,
+    error: run.results.filter((r) => r.status === 'error').length,
+    wall_time_ms: run.wall_time_ms,
+    wall_time_human: formatDuration(run.wall_time_ms),
+    memory_peak_rss_mb: run.memory_peak_rss_mb,
+    dtypes_tested: [...new Set(run.results.map((r) => r.dtype))],
+    best_per_model: Object.fromEntries(
+      Object.entries(byModel).map(([id, v]) => [id, v.best_variant]),
+    ),
+    leaderboard: ok
+      .map((r) => ({
+        model: r.model_name,
+        variant: r.variant,
+        composite_score: r.quality?.composite_score,
+        cross_lingual_mean: r.quality?.cross_lingual_pairs?.mean_cosine,
+        recall_at_5: r.quality?.retrieval?.recall_at_5,
+        mean_ms: r.inference?.mean_ms,
+        peak_rss_mb: r.memory?.peak_rss_mb,
+      }))
+      .sort((a, b) => (b.composite_score ?? 0) - (a.composite_score ?? 0)),
+  };
 }
 
 async function main() {
   const args = parseArgs(process.argv);
   const corpus = await loadCorpus();
+  const runWallStart = performance.now();
+  const runMemory = new MemoryMonitor();
+  runMemory.start();
 
   let documents = corpus.documents;
   if (args.maxTexts !== null) {
@@ -253,7 +541,6 @@ async function main() {
     models = models.filter((m) =>
       ['onnx-community/bge-m3-ONNX', 'onnx-community/embeddinggemma-300m-ONNX'].includes(m.id),
     );
-    args.dtypes = ['q4', 'int8'];
   }
 
   const run = {
@@ -261,18 +548,25 @@ async function main() {
     backend: 'transformers.js-wasm',
     transformers_version: (await import('@huggingface/transformers')).env.version,
     node_version: process.version,
-    args,
+    args: {
+      ...args,
+      dtypes: args.dtypes.map((d) => dtypeLabel(d)),
+    },
+    dtypes_internal: args.dtypes,
     corpus_stats: corpus.stats,
     documents_used: documents.length,
     started_at: new Date().toISOString(),
     results: [],
   };
 
-  console.log(`Benchmarking ${models.length} model(s) on ${documents.length} documents (WASM / Node.js)`);
+  console.log(`Benchmarking ${models.length} model(s) × [${args.dtypes.map(dtypeLabel).join(', ')}]`);
+  console.log(`Documents: ${documents.length} | Backend: WASM | Node ${process.version}`);
 
   for (const model of models) {
-    const variants = await listVariants(model, args);
-    console.log(`\n=== ${model.name} (${model.id}) — ${variants.length} variant(s) ===`);
+    const { variants, available_dtypes } = await listVariants(model, args);
+    console.log(`\n=== ${model.name} (${model.id}) ===`);
+    console.log(`  Available: ${available_dtypes.map(dtypeLabel).join(', ') || 'none'}`);
+    console.log(`  Testing:   ${variants.length} variant(s)`);
 
     for (const variant of variants) {
       process.stdout.write(`  • ${variant.label} ... `);
@@ -283,24 +577,32 @@ async function main() {
         queryPairs,
       });
       run.results.push(result);
-      console.log(result.status === 'ok' ? `ok (${result.inference.mean_ms} ms/doc)` : `error: ${result.error}`);
+
+      if (result.status === 'ok') {
+        console.log(
+          `ok | ${formatDuration(result.total_time_ms)} | ${result.inference.mean_ms} ms/doc | ` +
+            `RSS ${result.memory.peak_rss_mb} MB | quality ${result.quality.composite_score}`,
+        );
+      } else {
+        console.log(`error: ${result.error?.slice(0, 100)}`);
+      }
     }
   }
 
   run.finished_at = new Date().toISOString();
-  run.summary = {
-    total_variants: run.results.length,
-    ok: run.results.filter((r) => r.status === 'ok').length,
-    error: run.results.filter((r) => r.status === 'error').length,
-  };
+  run.wall_time_ms = round(performance.now() - runWallStart);
+  const runMem = runMemory.stop();
+  run.memory_peak_rss_mb = runMem.peak_rss_mb;
+  run.memory_at_end = runMem.at_end;
+  run.summary = buildRunSummary(run);
 
   const outDir = path.join(root, 'results');
   await fs.mkdir(outDir, { recursive: true });
-  const outPath = args.output ?? path.join(outDir, `benchmark-${Date.now()}.json`);
+  const outPath = args.output ?? path.join(outDir, `benchmark-full-${Date.now()}.json`);
   await fs.writeFile(outPath, JSON.stringify(run, null, 2), 'utf8');
 
+  printSummaryTable(run);
   console.log(`\nWrote results to ${outPath}`);
-  console.log(`Summary: ${run.summary.ok}/${run.summary.total_variants} variants succeeded`);
 }
 
 main().catch((error) => {

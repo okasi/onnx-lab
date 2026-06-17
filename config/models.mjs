@@ -60,14 +60,23 @@ export const MODELS = [
   },
 ];
 
-/** Standard dtypes exposed by ModelRegistry for most ONNX embedding repos. */
-export const STANDARD_DTYPES = [
-  'fp32',
-  'fp16',
-  'int8',
-  'uint8',
-  'q8',
-  'q4',
-  'q4f16',
-  'bnb4',
-];
+/**
+ * Quant variants requested for benchmarking.
+ * `q8` maps to ONNX file `model_quantized.onnx` (aka "quantized" in Hub repos).
+ */
+export const BENCHMARK_DTYPES = ['bnb4', 'fp16', 'int8', 'q4', 'q4f16', 'q8', 'uint8'];
+
+/** CLI alias → internal dtype id */
+export const DTYPE_ALIASES = {
+  quantized: 'q8',
+  q8: 'q8',
+};
+
+export function normalizeDtype(name) {
+  return DTYPE_ALIASES[name] ?? name;
+}
+
+/** Human label for reports (q8 shown as quantized) */
+export function dtypeLabel(dtype) {
+  return dtype === 'q8' ? 'quantized (q8)' : dtype;
+}

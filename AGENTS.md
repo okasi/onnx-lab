@@ -52,11 +52,9 @@ All models are loaded from their Hugging Face `onnx/` folders:
 
 ### Quantization variants
 
-For each model, the benchmark discovers available dtypes via `ModelRegistry.get_available_dtypes()` and tests:
+For each model, the benchmark tests these quants by default:
 
-`fp32`, `fp16`, `int8`, `uint8`, `q8`, `q4`, `q4f16`, `bnb4`
-
-Mapping to ONNX filenames (Transformers.js convention):
+`bnb4`, `fp16`, `int8`, `q4`, `q4f16`, `q8` (ONNX file `model_quantized.onnx`, alias **quantized**), `uint8`
 
 | dtype | ONNX suffix |
 |-------|-------------|
@@ -64,7 +62,7 @@ Mapping to ONNX filenames (Transformers.js convention):
 | fp16 | `model_fp16.onnx` |
 | int8 | `model_int8.onnx` |
 | uint8 | `model_uint8.onnx` |
-| q8 | `model_quantized.onnx` |
+| q8 / quantized | `model_quantized.onnx` |
 | q4 | `model_q4.onnx` |
 | q4f16 | `model_q4f16.onnx` |
 | bnb4 | `model_bnb4.onnx` |
