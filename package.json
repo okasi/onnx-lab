@@ -1,0 +1,26 @@
+{
+  "name": "embedding-tests",
+  "version": "1.0.0",
+  "description": "Swedish/Turkish embedding benchmarks with Transformers.js WASM on Node.js",
+  "type": "module",
+  "scripts": {
+    "generate:corpus": "node scripts/generate-corpus.mjs",
+    "benchmark": "node scripts/benchmark.mjs",
+    "benchmark:quick": "node scripts/benchmark.mjs --quick",
+    "benchmark:smoke": "node scripts/benchmark.mjs --max-texts 3 --dtype q4,int8,q4f16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/okasi/embedding-tests.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/okasi/embedding-tests/issues"
+  },
+  "homepage": "https://github.com/okasi/embedding-tests#readme",
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0"
+  }
+}
