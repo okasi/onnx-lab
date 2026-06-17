@@ -5,11 +5,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MODELS } from '../config/models.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const resultsDir = path.join(root, 'results');
 const outPath = path.join(root, 'LEADERBOARD.md');
+const activeModelIds = new Set(MODELS.map((m) => m.id));
+
+function filterActiveModels(results) {
+  return results.filter((r) => activeModelIds.has(r.model_id));
+}
 
 function formatDuration(ms) {
   if (!ms) return '—';
@@ -242,7 +248,7 @@ async function main() {
     }
   }
 
-  const results = mergeResults(fullRun, gemmaRun).filter((r) => r.dtype !== 'fp16');
+  const results = filterActiveModels(mergeResults(fullRun, gemmaRun)).filter((r) => r.dtype !== 'fp16');
   const md = buildMarkdown(fullRun, results);
   await fs.writeFile(outPath, md, 'utf8');
   console.log(`Wrote ${outPath} (${results.length} variants, ${results.filter((r) => r.status === 'ok').length} ok)`);

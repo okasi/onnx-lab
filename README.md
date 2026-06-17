@@ -5,7 +5,7 @@ Swedish and Turkish embedding benchmarks for ONNX multilingual models using **Tr
 ## What's inside
 
 - **54 long documents** (Swedish + Turkish) on mortgages, legal, and medical topics
-- Benchmark runner for **9 Hugging Face ONNX embedding models** and their quantization variants
+- Benchmark runner for **6 Hugging Face ONNX embedding models** and their quantization variants
 - WASM runtime bootstrap for Node.js (`lib/transformers-wasm.mjs`)
 
 See **[AGENTS.md](./AGENTS.md)** for full instructions, model links, CLI flags, and agent workflow.

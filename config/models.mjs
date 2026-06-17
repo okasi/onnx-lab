@@ -22,11 +22,6 @@ export const MODELS = [
     note: 'Text encoder only; requires .onnx_data shards (CPU backend).',
   },
   {
-    id: 'onnx-community/granite-embedding-311m-multilingual-r2-ONNX',
-    name: 'Granite Embedding 311M Multilingual R2',
-    url: 'https://huggingface.co/onnx-community/granite-embedding-311m-multilingual-r2-ONNX/tree/main/onnx',
-  },
-  {
     id: 'onnx-community/embeddinggemma-300m-ONNX',
     name: 'EmbeddingGemma 300M',
     url: 'https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/tree/main/onnx',
@@ -54,27 +49,6 @@ export const MODELS = [
     url: 'https://huggingface.co/onnx-community/bge-m3-ONNX/tree/main/onnx',
     heavy_quants: ['bnb4', 'q4'],
     note: 'bnb4/q4 may OOM on WASM above ~10 GB RSS; auto-falls back to CPU.',
-  },
-  {
-    id: 'Snowflake/snowflake-arctic-embed-l-v2.0',
-    name: 'Snowflake Arctic Embed L v2.0',
-    url: 'https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0/tree/main/onnx',
-    heavy_quants: ['bnb4', 'q4'],
-    extra_variants: [
-      {
-        label: 'O4',
-        dtype: 'fp32',
-        model_file_name: 'model_O4',
-        backend: 'auto',
-        note: 'Snowflake O4 quantized ONNX (non-standard dtype suffix).',
-      },
-    ],
-  },
-  {
-    id: 'Snowflake/snowflake-arctic-embed-m-v2.0',
-    name: 'Snowflake Arctic Embed M v2.0',
-    url: 'https://huggingface.co/Snowflake/snowflake-arctic-embed-m-v2.0/tree/main/onnx',
-    heavy_quants: ['bnb4', 'q4'],
   },
 ];
 

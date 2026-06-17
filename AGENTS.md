@@ -44,12 +44,9 @@ All models are loaded from their Hugging Face `onnx/` folders:
 | Granite Embedding 278M Multilingual | https://huggingface.co/sirasagi62/granite-embedding-278m-multilingual-ONNX/tree/main/onnx |
 | GTE Multilingual Base | https://huggingface.co/onnx-community/gte-multilingual-base/tree/main/onnx |
 | Jina Embeddings v5 Omni Nano (**text**) | https://huggingface.co/onnx-community/jina-embeddings-v5-omni-nano-ONNX/tree/main/onnx |
-| Granite Embedding 311M Multilingual R2 | https://huggingface.co/onnx-community/granite-embedding-311m-multilingual-r2-ONNX/tree/main/onnx |
 | EmbeddingGemma 300M | https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/tree/main/onnx |
 | Qwen3 Embedding 0.6B | https://huggingface.co/onnx-community/Qwen3-Embedding-0.6B-ONNX/tree/main/onnx |
 | BGE-M3 | https://huggingface.co/onnx-community/bge-m3-ONNX/tree/main/onnx |
-| Snowflake Arctic Embed L v2.0 | https://huggingface.co/Snowflake/snowflake-arctic-embed-l-v2.0/tree/main/onnx |
-| Snowflake Arctic Embed M v2.0 | https://huggingface.co/Snowflake/snowflake-arctic-embed-m-v2.0/tree/main/onnx |
 
 ### Quantization variants
 
@@ -70,7 +67,6 @@ For each model, the benchmark tests these quants by default:
 **Special cases**
 
 - **Jina v5 Omni Nano**: text encoder only — `model_file_name: 'text_model'` (e.g. `text_model_q4f16.onnx`).
-- **Arctic Embed L v2.0 O4**: extra variant via `model_file_name: 'model_O4'` (see `config/models.mjs`).
 - **fp32**: often requires large external `.onnx_data` shards. Not included in default benchmark quants.
 
 ## Corpus
@@ -157,7 +153,6 @@ Record failures instead of hiding them:
 | `q4f16` dtype mismatch | ORT WASM float16 vs float32 tensor error |
 | Jina architecture | Warning: `JinaEmbeddingsV5OmniModel` not in MODEL_TYPE_MAPPING; text encoder uses `text_model_*.onnx` only |
 | EmbeddingGemma q4 | `GatherBlockQuantized` not implemented in ORT WASM |
-| O4 variant | Non-standard filename; requires `model_file_name` override |
 
 ## Agent workflow
 
