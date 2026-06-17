@@ -21,7 +21,7 @@ Full runs download ONNX weights from Hugging Face on first use and cache them un
 |------|---------|
 | `data/benchmark-corpus.json` | 54 long documents (27 SV + 27 TR): mortgage, legal, medical |
 | `config/models.mjs` | Model registry with Hugging Face links |
-| `lib/transformers-wasm.mjs` | Node.js WASM runtime bootstrap for Transformers.js |
+| `lib/transformers-runtime.mjs` | Node.js WASM / WebGPU / CPU runtime bootstrap |
 | `scripts/benchmark.mjs` | Main benchmark runner |
 | `scripts/generate-corpus.mjs` | Regenerates the corpus JSON |
 | `results/` | Benchmark output JSON (gitignored) |
@@ -31,9 +31,20 @@ Full runs download ONNX weights from Hugging Face on first use and cache them un
 Transformers.js defaults to `onnxruntime-node` in Node. This project forces WASM by:
 
 1. Injecting `onnxruntime-web` into `globalThis[Symbol.for('onnxruntime')]` **before** importing `@huggingface/transformers`.
-2. Passing `device: 'auto'` and `session_options: { executionProviders: ['wasm'] }` to `pipeline('feature-extraction', ...)`.
+2. Setting `env.useWasmCache = false` and preloading `wasmBinary` (Node cannot `fetch()` `file://` WASM URLs).
+3. Passing `device: 'auto'` and `session_options: { executionProviders: ['wasm'] }` to `pipeline('feature-extraction', ...)`.
+4. Mounting external `.onnx_data` shards via `session_options.externalData` (Transformers.js omits them in Node by default).
 
-See `lib/transformers-wasm.mjs` for the exact bootstrap.
+See `lib/transformers-runtime.mjs` for bootstrap details.
+
+### WASM variants
+
+| Bundle | ORT files | Notes |
+|--------|-----------|-------|
+| `wasm` (asyncify) | `ort-wasm-simd-threaded.asyncify.*` | Default; lacks WebGPU JSEP ops |
+| `wasm-jsep` | `ort-wasm-simd-threaded.jsep.*` | **Required** for `GatherBlockQuantized` (EmbeddingGemma q4/q4f16) |
+
+Auto backend order: **wasm-jsep → wasm → cpu**.
 
 ## Benchmarked models
 
@@ -116,22 +127,32 @@ Run-level summary includes wall time, peak RSS, leaderboard, and best variant pe
 Each variant runs in an **isolated subprocess** (`scripts/benchmark-variant.mjs`) so OOM kills do not crash the full benchmark.
 
 **Backend strategy (`auto`):**
-1. Try **WASM** first (onnxruntime-web)
-2. On failure (external data, GatherBlockQuantized, OOM), automatically retry **CPU** (onnxruntime-node)
+1. Try **wasm-jsep** (onnxruntime-web JSEP bundle — supports `GatherBlockQuantized`)
+2. Fall back to **wasm** (asyncify bundle)
+3. On failure (OOM, missing shards, unsupported ops), retry **CPU** (onnxruntime-node)
 
-Models with known WASM issues use `backend: 'cpu'` directly (Jina text, EmbeddingGemma).
+Models with known WASM issues use `backend: 'cpu'` directly (Jina text).
 
 ### EmbeddingGemma 300M
 
-WASM cannot load `.onnx_data` shards. On CPU all quants work:
+| Quant | Node WASM (jsep) | Node CPU | Browser WebGPU |
+|-------|------------------|----------|----------------|
+| q4 / q4f16 | **works** with `externalData` mount + jsep bundle | works | loads; inference needs `shader-f16` GPU feature |
+| no_gather_q4 | not needed (q4 only) | works | — |
 
-| Quant | Backend | Notes |
-|-------|---------|-------|
-| q4 | cpu (auto fallback) | Standard `model_q4.onnx` + data |
-| no_gather_q4 | cpu | `model_no_gather_q4.onnx` — avoids GatherBlockQuantized |
-| quantized (q8) | cpu | `model_quantized.onnx` + data |
+**q4f16 probe results (Node 22, this repo):**
 
-Example full-corpus result (54 docs): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
+| Backend | Status | ms/doc (5 docs) | Notes |
+|---------|--------|-----------------|-------|
+| wasm-jsep | ok | ~2094 | `GatherBlockQuantized` via JSEP |
+| wasm (asyncify) | fail | — | `GatherBlockQuantized` kernel missing |
+| cpu | ok | ~22 | onnxruntime-node |
+| webgpu (Node + Dawn) | fail | — | No Vulkan adapter on headless VM |
+| webgpu (Chrome) | partial | — | Model loads; infer fails without `shader-f16` |
+
+Probe scripts: `node scripts/probe-embeddinggemma-backends.mjs`, `node scripts/probe-embeddinggemma-webgpu-browser.mjs`.
+
+Example full-corpus result (54 docs, CPU): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
 
 ## Retrieval metrics (robust)
 
@@ -150,9 +171,10 @@ Record failures instead of hiding them:
 | Issue | Typical symptom |
 |-------|-----------------|
 | External data (`*.onnx_data`) missing | fp32 init error for split ONNX graphs |
-| `q4f16` dtype mismatch | ORT WASM float16 vs float32 tensor error |
-| Jina architecture | Warning: `JinaEmbeddingsV5OmniModel` not in MODEL_TYPE_MAPPING; text encoder uses `text_model_*.onnx` only |
-| EmbeddingGemma q4 | `GatherBlockQuantized` not implemented in ORT WASM |
+| External data not mounted (Node WASM) | Pass `session_options.externalData` with shard path/buffer |
+| `q4f16` dtype mismatch | ORT graph fusion / FP16 cast issues (Granite, GTE, BGE-M3) |
+| `GatherBlockQuantized` | Use **wasm-jsep** bundle, or WebGPU with `shader-f16`, or `no_gather_q4` variant |
+| WebGPU `shader-f16` | q4f16 `GatherBlockQuantized` needs GPU f16 shaders; software adapters often lack it |
 
 ## Agent workflow
 

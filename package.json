@@ -9,7 +9,8 @@
     "benchmark:quick": "node --expose-gc scripts/benchmark.mjs --quick",
     "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,int8,q4,q4f16,quantized,uint8",
     "leaderboard": "node scripts/generate-leaderboard.mjs",
-    "backfill:r3": "node --expose-gc scripts/backfill-recall-r3.mjs"
+    "probe:embeddinggemma": "node --expose-gc scripts/probe-embeddinggemma-backends.mjs",
+    "probe:webgpu": "node scripts/probe-embeddinggemma-webgpu-browser.mjs"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,9 @@
   "homepage": "https://github.com/okasi/embedding-tests#readme",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.61.0",
+    "webgpu": "^0.4.0"
   }
 }

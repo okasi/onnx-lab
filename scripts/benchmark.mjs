@@ -341,7 +341,7 @@ async function main() {
 
     for (const variant of variants) {
       const backends =
-        variant.backend === 'auto' ? ['wasm', 'cpu'] : [variant.backend ?? 'cpu'];
+        variant.backend === 'auto' ? ['wasm-jsep', 'wasm', 'cpu'] : [variant.backend ?? 'cpu'];
 
       let result = null;
       for (const backend of backends) {
@@ -350,13 +350,13 @@ async function main() {
         result = await benchmarkVariant({ model, variant, args, backendOverride: backend });
 
         if (result.status === 'ok') {
-          if (backend === 'cpu' && backends[0] === 'wasm') {
+          if (backend === 'cpu' && backends[0] !== 'cpu') {
             result.wasm_fallback = true;
           }
           break;
         }
-        if (backend === 'wasm') {
-          console.log(`wasm fail → retry cpu`);
+        if (backend === 'wasm' || backend === 'wasm-jsep') {
+          console.log(`${backend} fail → retry next`);
         }
       }
 

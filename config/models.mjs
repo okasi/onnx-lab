@@ -26,7 +26,7 @@ export const MODELS = [
     name: 'EmbeddingGemma 300M',
     url: 'https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/tree/main/onnx',
     backend: 'auto',
-    note: 'WASM cannot load external .onnx_data; auto-falls back to CPU.',
+    note: 'q4/q4f16 need wasm-jsep + externalData mount; WebGPU needs shader-f16.',
     extra_variants: [
       {
         label: 'no_gather_q4',
