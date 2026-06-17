@@ -242,6 +242,8 @@ function printSummaryTable(run) {
       'XLing'.padStart(7),
       'XL-R@5'.padStart(7),
       'R@5'.padStart(7),
+      'R@3'.padStart(7),
+      'R@1'.padStart(7),
     ].join(' '),
   );
   console.log('-'.repeat(130));
@@ -263,6 +265,8 @@ function printSummaryTable(run) {
           .toString()
           .padStart(7),
         (q?.recall_at_5 ?? q?.retrieval?.topic_any?.recall_at_5 ?? '-').toString().padStart(7),
+        (q?.retrieval?.topic_any?.recall_at_3 ?? '-').toString().padStart(7),
+        (q?.retrieval?.topic_any?.recall_at_1 ?? '-').toString().padStart(7),
       ].join(' '),
     );
   }

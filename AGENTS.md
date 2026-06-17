@@ -110,7 +110,7 @@ Per model × quant variant:
 - **Quality**:
   - `topic_cohesion_mean` / `topic_separation_mean` / `topic_discrimination`
   - `cross_lingual_pairs.mean_cosine` (SV↔TR same-topic pairs)
-  - `retrieval.recall_at_1`, `recall_at_5`, `recall_at_10`
+  - `retrieval.recall_at_1`, `recall_at_3`, `recall_at_5`, `recall_at_10`
   - `composite_score` (weighted blend of cross-lingual, discrimination, recall@5)
 
 Run-level summary includes wall time, peak RSS, leaderboard, and best variant per model.
@@ -141,6 +141,7 @@ Example full-corpus result (54 docs): quality **~0.63**, cross-lingual cosine **
 
 | Metric | Meaning |
 |--------|---------|
+| **R@3** (`topic_any`) | Same topic in top 3, any language |
 | **R@5** (`topic_any`) | Same topic in top 5, any language |
 | **XL-R@5** (`topic_cross_lang`) | Same topic in top 5, **different** language (SV↔TR) — harder, more meaningful for this benchmark |
 | **MRR@10** | Mean reciprocal rank of first relevant hit |

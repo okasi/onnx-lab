@@ -8,7 +8,8 @@
     "benchmark": "node --expose-gc scripts/benchmark.mjs",
     "benchmark:quick": "node --expose-gc scripts/benchmark.mjs --quick",
     "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,int8,q4,q4f16,quantized,uint8",
-    "leaderboard": "node scripts/generate-leaderboard.mjs"
+    "leaderboard": "node scripts/generate-leaderboard.mjs",
+    "backfill:r3": "node --expose-gc scripts/backfill-recall-r3.mjs"
   },
   "repository": {
     "type": "git",

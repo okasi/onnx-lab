@@ -49,6 +49,7 @@ function rowMetrics(r) {
     xling: q?.cross_lingual_pairs?.mean_cosine,
     xl_r5: q?.cross_lingual_recall_at_5 ?? q?.retrieval?.topic_cross_lang?.recall_at_5,
     r1: q?.retrieval?.recall_at_1 ?? q?.retrieval?.topic_any?.recall_at_1,
+    r3: q?.retrieval?.recall_at_3 ?? q?.retrieval?.topic_any?.recall_at_3,
     r5: q?.recall_at_5 ?? q?.retrieval?.recall_at_5 ?? q?.retrieval?.topic_any?.recall_at_5,
     r10: q?.retrieval?.recall_at_10 ?? q?.retrieval?.topic_any?.recall_at_10,
     mrr10: q?.retrieval?.topic_cross_lang?.mrr_at_10 ?? q?.retrieval?.mrr_at_10,
@@ -112,7 +113,7 @@ function buildMarkdown(run, results) {
   lines.push('| **Quality** | Composite: XLing (35%) + topic discrimination (25%) + XL-R@5 (25%) + R@5 (15%) |');
   lines.push('| **XLing** | Mean cosine similarity of paired SV↔TR documents (same topic) |');
   lines.push('| **XL-R@5** | Cross-lingual recall@5: query in one language, relevant doc in the *other* language in top 5 |');
-  lines.push('| **R@1 / R@5 / R@10** | Same-topic retrieval recall (any language) |');
+  lines.push('| **R@1 / R@3 / R@5 / R@10** | Same-topic retrieval recall (any language) |');
   lines.push('| **MRR@10** | Mean reciprocal rank of first cross-lingual same-topic hit |');
   lines.push('| **Cohesion / Separation** | Mean cosine within-topic vs between-topic |');
   lines.push('| **RSS** | Peak resident set size during variant run |');
@@ -122,16 +123,16 @@ function buildMarkdown(run, results) {
   lines.push('## Ranked leaderboard (successful variants)');
   lines.push('');
   lines.push(
-    '| Rank | Model | Quant | Backend | Quality | XLing | XL-R@5 | R@5 | R@1 | MRR@10 | Cohesion | Sep. | ms/doc | Total | RSS MB | Dim |',
+    '| Rank | Model | Quant | Backend | Quality | XLing | XL-R@5 | R@5 | R@3 | R@1 | MRR@10 | Cohesion | Sep. | ms/doc | Total | RSS MB | Dim |',
   );
   lines.push(
-    '|------|-------|-------|---------|---------|-------|--------|-----|-----|--------|----------|------|--------|-------|--------|-----|',
+    '|------|-------|-------|---------|---------|-------|--------|-----|-----|-----|--------|----------|------|--------|-------|--------|-----|',
   );
 
   ranked.forEach((r, i) => {
     const m = rowMetrics(r);
     lines.push(
-      `| ${i + 1} | ${r.model_name} | ${r.variant} | ${m.backend} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.r1)} | ${fmt(m.mrr10)} | ${fmt(m.cohesion)} | ${fmt(m.separation)} | ${fmt(m.ms_doc, 1)} | ${m.total} | ${fmt(m.rss, 1)} | ${m.dim} |`,
+      `| ${i + 1} | ${r.model_name} | ${r.variant} | ${m.backend} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.r3)} | ${fmt(m.r1)} | ${fmt(m.mrr10)} | ${fmt(m.cohesion)} | ${fmt(m.separation)} | ${fmt(m.ms_doc, 1)} | ${m.total} | ${fmt(m.rss, 1)} | ${m.dim} |`,
     );
   });
 
@@ -141,10 +142,10 @@ function buildMarkdown(run, results) {
   lines.push('## Full results (all variants)');
   lines.push('');
   lines.push(
-    '| Model | Quant | Status | Backend | Dim | Load | Total | ms/doc | p95 | RSS MB | Quality | XLing | XL-R@5 | R@5 | R@1 | R@10 | Cohesion | Separation | Error |',
+    '| Model | Quant | Status | Backend | Dim | Load | Total | ms/doc | p95 | RSS MB | Quality | XLing | XL-R@5 | R@5 | R@3 | R@1 | R@10 | Cohesion | Separation | Error |',
   );
   lines.push(
-    '|-------|-------|--------|---------|-----|------|-------|--------|-----|--------|---------|-------|--------|-----|-----|------|----------|------------|-------|',
+    '|-------|-------|--------|---------|-----|------|-------|--------|-----|--------|---------|-------|--------|-----|-----|-----|------|----------|------------|-------|',
   );
 
   const byModel = {};
@@ -157,7 +158,7 @@ function buildMarkdown(run, results) {
     for (const r of byModel[modelName]) {
       const m = rowMetrics(r);
       lines.push(
-        `| ${r.model_name} | ${r.variant} | ${r.status} | ${m.backend} | ${m.dim} | ${m.load_s}s | ${m.total} | ${fmt(m.ms_doc, 1)} | ${fmt(m.p95, 1)} | ${fmt(m.rss, 1)} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.r1)} | ${fmt(m.r10)} | ${fmt(m.cohesion)} | ${fmt(m.separation)} | ${m.error} |`,
+        `| ${r.model_name} | ${r.variant} | ${r.status} | ${m.backend} | ${m.dim} | ${m.load_s}s | ${m.total} | ${fmt(m.ms_doc, 1)} | ${fmt(m.p95, 1)} | ${fmt(m.rss, 1)} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.r3)} | ${fmt(m.r1)} | ${fmt(m.r10)} | ${fmt(m.cohesion)} | ${fmt(m.separation)} | ${m.error} |`,
       );
     }
   }
@@ -167,13 +168,13 @@ function buildMarkdown(run, results) {
   lines.push('');
   lines.push('## Best variant per model');
   lines.push('');
-  lines.push('| Model | Best quant | Quality | XLing | XL-R@5 | R@5 | ms/doc | RSS MB | Backend |');
-  lines.push('|-------|------------|---------|-------|--------|-----|--------|--------|---------|');
+  lines.push('| Model | Best quant | Quality | XLing | XL-R@5 | R@5 | R@3 | ms/doc | RSS MB | Backend |');
+  lines.push('|-------|------------|---------|-------|--------|-----|-----|--------|--------|---------|');
 
   for (const modelName of Object.keys(byModel).sort()) {
     const modelOk = byModel[modelName].filter((r) => r.status === 'ok');
     if (modelOk.length === 0) {
-      lines.push(`| ${modelName} | — | — | — | — | — | — | — | all failed |`);
+      lines.push(`| ${modelName} | — | — | — | — | — | — | — | — | all failed |`);
       continue;
     }
     const best = modelOk.sort(
@@ -181,7 +182,7 @@ function buildMarkdown(run, results) {
     )[0];
     const m = rowMetrics(best);
     lines.push(
-      `| ${modelName} | ${best.variant} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.ms_doc, 1)} | ${fmt(m.rss, 1)} | ${m.backend} |`,
+      `| ${modelName} | ${best.variant} | ${fmt(m.quality)} | ${fmt(m.xling)} | ${fmt(m.xl_r5)} | ${fmt(m.r5)} | ${fmt(m.r3)} | ${fmt(m.ms_doc, 1)} | ${fmt(m.rss, 1)} | ${m.backend} |`,
     );
   }
 
