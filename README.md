@@ -10,6 +10,8 @@ Swedish and Turkish embedding benchmarks for ONNX multilingual models using **Tr
 
 See **[AGENTS.md](./AGENTS.md)** for full instructions, model links, CLI flags, and agent workflow.
 
+See **[LEADERBOARD.md](./LEADERBOARD.md)** for the full ranked results table (all models, quants, quality, memory, and timing).
+
 ## Commands
 
 ```bash

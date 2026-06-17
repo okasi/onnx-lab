@@ -9,6 +9,7 @@ npm install
 npm run generate:corpus    # optional — corpus is committed under data/
 npm run benchmark:quick    # smoke run (2 models, 5 docs, q4+int8)
 npm run benchmark:smoke    # all models, 3 docs, q4+int8+q4f16 (Jina)
+npm run leaderboard        # regenerate LEADERBOARD.md from results/
 npm run benchmark          # full run (all models & quants, 54 docs)
 ```
 

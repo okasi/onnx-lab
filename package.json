@@ -7,7 +7,8 @@
     "generate:corpus": "node scripts/generate-corpus.mjs",
     "benchmark": "node --expose-gc scripts/benchmark.mjs",
     "benchmark:quick": "node --expose-gc scripts/benchmark.mjs --quick",
-    "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,int8,q4,q4f16,quantized,uint8"
+    "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,int8,q4,q4f16,quantized,uint8",
+    "leaderboard": "node scripts/generate-leaderboard.mjs"
   },
   "repository": {
     "type": "git",
