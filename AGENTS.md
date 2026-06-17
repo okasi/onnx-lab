@@ -105,13 +105,49 @@ node scripts/benchmark.mjs [options]
 
 Per model × quant variant:
 
-- `load_time_ms` — pipeline creation + ONNX session init
-- `inference` — mean / p50 / p95 embed latency per document (ms)
-- `embedding_dim` — output vector size
-- `cross_lingual_pairs` — cosine similarity for SV↔TR topic-aligned pairs
-- `status` / `error` — success or failure message
+- **Timing**: `load_time_ms`, `total_time_ms`, per-document latency (mean / p50 / p95 / total)
+- **Memory**: `memory.peak_rss_mb`, `peak_heap_used_mb`, `peak_external_mb`
+- **Quality**:
+  - `topic_cohesion_mean` / `topic_separation_mean` / `topic_discrimination`
+  - `cross_lingual_pairs.mean_cosine` (SV↔TR same-topic pairs)
+  - `retrieval.recall_at_1`, `recall_at_5`, `recall_at_10`
+  - `composite_score` (weighted blend of cross-lingual, discrimination, recall@5)
 
-## Known WASM limitations
+Run-level summary includes wall time, peak RSS, leaderboard, and best variant per model.
+
+## Runtime & crash resilience
+
+Each variant runs in an **isolated subprocess** (`scripts/benchmark-variant.mjs`) so OOM kills do not crash the full benchmark.
+
+**Backend strategy (`auto`):**
+1. Try **WASM** first (onnxruntime-web)
+2. On failure (external data, GatherBlockQuantized, OOM), automatically retry **CPU** (onnxruntime-node)
+
+Models with known WASM issues use `backend: 'cpu'` directly (Jina text, EmbeddingGemma).
+
+### EmbeddingGemma 300M
+
+WASM cannot load `.onnx_data` shards. On CPU all quants work:
+
+| Quant | Backend | Notes |
+|-------|---------|-------|
+| q4 | cpu (auto fallback) | Standard `model_q4.onnx` + data |
+| no_gather_q4 | cpu | `model_no_gather_q4.onnx` — avoids GatherBlockQuantized |
+| quantized (q8) | cpu | `model_quantized.onnx` + data |
+| fp16 | cpu | `model_fp16.onnx` + data |
+
+Example full-corpus result (54 docs): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
+
+## Retrieval metrics (robust)
+
+| Metric | Meaning |
+|--------|---------|
+| **R@5** (`topic_any`) | Same topic in top 5, any language |
+| **XL-R@5** (`topic_cross_lang`) | Same topic in top 5, **different** language (SV↔TR) — harder, more meaningful for this benchmark |
+| **MRR@10** | Mean reciprocal rank of first relevant hit |
+| **XLing** | Mean cosine of paired SV/TR documents on identical topics |
+
+Composite score weights: cross-lingual cosine (35%), topic discrimination (25%), XL-R@5 (25%), R@5 (15%).
 
 Record failures instead of hiding them:
 
