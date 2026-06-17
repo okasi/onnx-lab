@@ -54,12 +54,11 @@ All models are loaded from their Hugging Face `onnx/` folders:
 
 For each model, the benchmark tests these quants by default:
 
-`bnb4`, `fp16`, `int8`, `q4`, `q4f16`, `q8` (ONNX file `model_quantized.onnx`, alias **quantized**), `uint8`
+`bnb4`, `int8`, `q4`, `q4f16`, `q8` (ONNX file `model_quantized.onnx`, alias **quantized**), `uint8`
 
 | dtype | ONNX suffix |
 |-------|-------------|
 | fp32 | `model.onnx` |
-| fp16 | `model_fp16.onnx` |
 | int8 | `model_int8.onnx` |
 | uint8 | `model_uint8.onnx` |
 | q8 / quantized | `model_quantized.onnx` |
@@ -71,7 +70,7 @@ For each model, the benchmark tests these quants by default:
 
 - **Jina v5 Omni Nano**: text encoder only — `model_file_name: 'text_model'` (e.g. `text_model_q4f16.onnx`).
 - **Arctic Embed L v2.0 O4**: extra variant via `model_file_name: 'model_O4'` (see `config/models.mjs`).
-- **fp32 / fp16**: often require large external `.onnx_data` shards; skipped by default. Use `--include-fp32` to attempt them.
+- **fp32**: often requires large external `.onnx_data` shards. Not included in default benchmark quants.
 
 ## Corpus
 
@@ -134,7 +133,6 @@ WASM cannot load `.onnx_data` shards. On CPU all quants work:
 | q4 | cpu (auto fallback) | Standard `model_q4.onnx` + data |
 | no_gather_q4 | cpu | `model_no_gather_q4.onnx` — avoids GatherBlockQuantized |
 | quantized (q8) | cpu | `model_quantized.onnx` + data |
-| fp16 | cpu | `model_fp16.onnx` + data |
 
 Example full-corpus result (54 docs): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
 
@@ -153,7 +151,7 @@ Record failures instead of hiding them:
 
 | Issue | Typical symptom |
 |-------|-----------------|
-| External data (`*.onnx_data`) missing | fp32/fp16 init error for split ONNX graphs |
+| External data (`*.onnx_data`) missing | fp32 init error for split ONNX graphs |
 | `q4f16` dtype mismatch | ORT WASM float16 vs float32 tensor error |
 | Jina architecture | Warning: `JinaEmbeddingsV5OmniModel` not in MODEL_TYPE_MAPPING; text encoder uses `text_model_*.onnx` only |
 | EmbeddingGemma q4 | `GatherBlockQuantized` not implemented in ORT WASM |

@@ -78,7 +78,7 @@ export const MODELS = [
   },
 ];
 
-export const BENCHMARK_DTYPES = ['bnb4', 'fp16', 'int8', 'q4', 'q4f16', 'q8', 'uint8'];
+export const BENCHMARK_DTYPES = ['bnb4', 'int8', 'q4', 'q4f16', 'q8', 'uint8'];
 
 export const DTYPE_ALIASES = {
   quantized: 'q8',
