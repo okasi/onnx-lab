@@ -10,7 +10,8 @@
     "benchmark:smoke": "node --expose-gc scripts/benchmark.mjs --max-texts 3 --dtype bnb4,int8,q4,q4f16,quantized,uint8",
     "leaderboard": "node scripts/generate-leaderboard.mjs",
     "probe:embeddinggemma": "node --expose-gc scripts/probe-embeddinggemma-backends.mjs",
-    "probe:webgpu": "node scripts/probe-embeddinggemma-webgpu-browser.mjs"
+    "probe:webgpu": "node scripts/probe-webgpu-hard.mjs",
+    "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control"
   },
   "repository": {
     "type": "git",

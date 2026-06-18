@@ -29,7 +29,10 @@ After benchmarking six multilingual ONNX embedding models across every practical
 
 5. **Deployable beyond CPU.** With the hardened runtime in this repo (JSEP WASM bundle + external data mount), q4f16 also runs on **wasm-jsep** in Node — important for browser-aligned ONNX paths and for environments without native ORT.
 
-6. **WebGPU-ready when hardware allows.** In Chrome, the q4f16 graph loads on WebGPU; inference needs a GPU with `shader-f16` (discrete GPUs). Software renderers load the model but cannot execute the q4f16 gather shader — a hardware constraint, not a model defect.
+6. **WebGPU path verified.** Aggressive probing (Chrome flags, ANGLE backends, lavapipe ICD, `forceCpuNodeNames`, dual webgpu+wasm EPs):
+   - **q4f16 on WebGPU** needs `shader-f16` (discrete GPU). Software Google adapter loads the graph but cannot run the f16 gather shader.
+   - **q4 on WebGPU works** in headless Chrome (~12 s/doc infer here) — use `dtype: 'q4'` or `webgpu_fallback_dtype: 'q4'` when f16 is unavailable.
+   - **Node wasm-jsep** remains the best path for q4f16 without discrete GPU.
 
 **Hub:** [onnx-community/embeddinggemma-300m-ONNX](https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/tree/main/onnx) · ONNX file: `model_q4f16.onnx` + `model_q4f16.onnx_data`
 

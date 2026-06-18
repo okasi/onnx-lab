@@ -137,7 +137,7 @@ Models with known WASM issues use `backend: 'cpu'` directly (Jina text).
 
 | Quant | Node WASM (jsep) | Node CPU | Browser WebGPU |
 |-------|------------------|----------|----------------|
-| q4 / q4f16 | **works** with `externalData` mount + jsep bundle | works | loads; inference needs `shader-f16` GPU feature |
+| q4 / q4f16 | **works** with `externalData` mount + jsep bundle | works | **q4 works**; q4f16 needs `shader-f16` GPU |
 | no_gather_q4 | not needed (q4 only) | works | — |
 
 **q4f16 probe results (Node 22, this repo):**
@@ -148,9 +148,12 @@ Models with known WASM issues use `backend: 'cpu'` directly (Jina text).
 | wasm (asyncify) | fail | — | `GatherBlockQuantized` kernel missing |
 | cpu | ok | ~22 | onnxruntime-node |
 | webgpu (Node + Dawn) | fail | — | No Vulkan adapter on headless VM |
-| webgpu (Chrome) | partial | — | Model loads; infer fails without `shader-f16` |
+| webgpu (Chrome) q4f16 | partial | — | Loads ~5s; infer blocked without `shader-f16` |
+| webgpu (Chrome) q4 | **ok** | ~12000 (1 doc) | Full inference on software Google adapter |
 
-Probe scripts: `node scripts/probe-embeddinggemma-backends.mjs`, `node scripts/probe-embeddinggemma-webgpu-browser.mjs`.
+**WebGPU strategies tried (all failed for q4f16 except load):** default ANGLE, vulkan ANGLE, swiftshader, angle=gl, lavapipe ICD, Chrome blog flags (`--disable-vulkan-surface`), `forceCpuNodeNames` on Gather node, webgpu+wasm dual EP.
+
+Probe scripts: `npm run probe:embeddinggemma`, `npm run probe:webgpu`.
 
 Example full-corpus result (54 docs, CPU): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
 
