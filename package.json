@@ -11,7 +11,8 @@
     "leaderboard": "node scripts/generate-leaderboard.mjs",
     "probe:embeddinggemma": "node --expose-gc scripts/probe-embeddinggemma-backends.mjs",
     "probe:webgpu": "node scripts/probe-webgpu-hard.mjs",
-    "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control"
+    "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control",
+    "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs"
   },
   "repository": {
     "type": "git",
