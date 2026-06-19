@@ -144,9 +144,9 @@ async function runWebgpu() {
       });
       try {
         const page = await browser.newPage();
-        page.setDefaultTimeout(3_600_000);
+        page.setDefaultTimeout(600_000);
         await page.goto(`http://127.0.0.1:${PORT}/`);
-        await page.waitForFunction(() => window.__RESULT__, null, { timeout: 3_600_000 });
+        await page.waitForFunction(() => window.__RESULT__, null, { timeout: 600_000 });
         const payload = await page.evaluate(() => window.__RESULT__);
         if (payload.status !== 'ok') {
           throw new Error(payload.error);
