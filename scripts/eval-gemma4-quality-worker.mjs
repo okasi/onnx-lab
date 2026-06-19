@@ -14,6 +14,8 @@ import {
   scoreJsonExtraction,
   scoreMcq,
   scoreReadingComprehension,
+  scoreSummarization,
+  scoreClassification,
 } from '../lib/gemma4-quality-scoring.mjs';
 import { createTextGenerator } from '../lib/transformers-runtime.mjs';
 
@@ -21,11 +23,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
 const TOKEN_LIMITS = {
-  domain_writing: 256,
-  json_extraction: 400,
-  mcq: 24,
-  reading_comprehension: 32,
-  instruction_following: 160,
+  domain_writing: 300,
+  json_extraction: 512,
+  mcq: 32,
+  reading_comprehension: 48,
+  instruction_following: 200,
+  summarization: 180,
+  classification: 16,
 };
 
 function parseArgs(argv) {
@@ -107,6 +111,12 @@ async function runCategory(generator, categoryKey, categoryDef, filterCategory) 
           break;
         case 'instruction_following':
           scoreResult = scoreInstructionFollowing(generated.completion || generated.full, task.rules);
+          break;
+        case 'summarization':
+          scoreResult = scoreSummarization(generated.completion || generated.full, task);
+          break;
+        case 'classification':
+          scoreResult = scoreClassification(generated.completion || generated.full, task.expected);
           break;
         default:
           scoreResult = { score: 0, pass: false, error: `unknown category ${categoryKey}` };

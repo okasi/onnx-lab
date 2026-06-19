@@ -110,7 +110,7 @@ function printSummary(run) {
   console.log('GEMMA 4 QUALITY SUMMARY');
   console.log('='.repeat(100));
   console.log(
-    ['Model', 'Quant', 'Overall', 'Writing', 'JSON', 'MCQ', 'Reading', 'Instruct', 'Pass%'].join('\t'),
+    ['Model', 'Quant', 'Overall', 'Writing', 'JSON', 'MCQ', 'Reading', 'Instruct', 'Summary', 'Classify', 'Pass%'].join('\t'),
   );
   console.log('-'.repeat(100));
 
@@ -130,6 +130,8 @@ function printSummary(run) {
         c.mcq?.summary?.mean_score ?? '-',
         c.reading_comprehension?.summary?.mean_score ?? '-',
         c.instruction_following?.summary?.mean_score ?? '-',
+        c.summarization?.summary?.mean_score ?? '-',
+        c.classification?.summary?.mean_score ?? '-',
         r.summary?.pass_rate ?? '-',
       ].join('\t'),
     );
@@ -162,13 +164,15 @@ async function writeMarkdownReport(run, outPath) {
   }
 
   lines.push('', '## By category', '');
-  const cats = ['domain_writing', 'json_extraction', 'mcq', 'reading_comprehension', 'instruction_following'];
+  const cats = ['domain_writing', 'json_extraction', 'mcq', 'reading_comprehension', 'instruction_following', 'summarization', 'classification'];
   const catLabels = {
     domain_writing: 'Domain writing',
     json_extraction: 'JSON extraction',
     mcq: 'MCQ (standard)',
     reading_comprehension: 'Reading comp',
     instruction_following: 'Instruction following',
+    summarization: 'Summarization',
+    classification: 'Classification',
   };
 
   for (const cat of cats) {

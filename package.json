@@ -25,7 +25,8 @@
     "build:ort:all": "bash scripts/build-ort.sh && bash scripts/build-ort-web.sh",
     "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs",
     "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs",
-    "eval:gemma4:quality": "node --expose-gc scripts/eval-gemma4-quality.mjs"
+    "eval:gemma4:quality": "node --expose-gc scripts/eval-gemma4-quality.mjs",
+    "build:gemma4-quality-suite": "node scripts/build-gemma4-quality-suite.mjs"
   },
   "repository": {
     "type": "git",
@@ -40,22 +41,9 @@
   "homepage": "https://github.com/okasi/onnx-lab#readme",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
-  },
-  "overrides": {
-    "@huggingface/transformers": {
-      "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-      "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-      "onnxruntime-web": "file:vendor/onnxruntime/js/web"
-    },
-    "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
+    "playwright-core": "^1.61.0"
   },
   "devDependencies": {
-    "playwright-core": "^1.61.0",
     "webgpu": "^0.4.0"
   }
 }
