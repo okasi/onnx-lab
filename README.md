@@ -58,8 +58,11 @@ npm run benchmark            # full matrix (slow; downloads models)
 npm run probe:embeddinggemma # Node backend matrix for Gemma q4f16
 npm run probe:webgpu         # Chrome WebGPU probe
 npm run probe:gemma-quants   # CPU + WebGPU quant matrix
-npm run probe:gemma4         # Gemma 4 LLM matrix (all models/quants/backends)
 npm run probe:gemma4:quick   # Gemma 4 smoke: E2B q4 × 4 backends
+npm run probe:gemma4:hard    # WebGPU multi-strategy retry
+npm run benchmark:gemma4:quick  # E2B q4+q8 cpu+webgpu, 3 prompts
+npm run benchmark:gemma4     # full LLM matrix (multi-GB downloads)
+npm run leaderboard:gemma4   # GEMMA4_LEADERBOARD.md from results/
 npm run leaderboard          # regenerate LEADERBOARD.md from results/
 ```
 

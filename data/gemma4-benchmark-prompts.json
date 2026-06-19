@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "Short SV/TR prompts for Gemma 4 text-generation benchmarks",
+  "prompts": [
+    {
+      "id": "sv-mortgage-01",
+      "language": "sv",
+      "topic": "mortgage",
+      "prompt": "Bolånemarginal och rörlig ränta: När du tecknar ett bolån i Sverige erbjuder banken antingen rörlig ränta eller bunden ränta"
+    },
+    {
+      "id": "tr-mortgage-01",
+      "language": "tr",
+      "topic": "mortgage",
+      "prompt": "Konut kredisi faiz oranı ve değişken faiz: Türkiye'de konut kredisi başvururusunda bankalar sabit veya değişken faizli ürünler sunar"
+    },
+    {
+      "id": "sv-legal-01",
+      "language": "sv",
+      "topic": "legal",
+      "prompt": "Konsumentkreditlagen och ångerrätt: Konsumentkreditlagen (2010:1846) reglerar kreditavtal mellan näringsidkare och konsumenter i Sverige"
+    },
+    {
+      "id": "tr-legal-01",
+      "language": "tr",
+      "topic": "legal",
+      "prompt": "Tüketici kredisi ve cayma hakkı: 6502 sayılı Tüketicinin Korunması Hakkında Kanun, mesafeli sözleşmelerde ve finansal hizmetlerde bilgilendirme yükümlülü"
+    },
+    {
+      "id": "sv-medical-01",
+      "language": "sv",
+      "topic": "medical",
+      "prompt": "Hypertoni och hyperlipidemi: Hypertoni definieras ofta som upprepade blodtrycksmätningar på 140/90 mmHg eller högre"
+    },
+    {
+      "id": "tr-medical-01",
+      "language": "tr",
+      "topic": "medical",
+      "prompt": "Hipertansiyon ve dislipidemi: Hipertansiyon çoğu kılavuzda ofis ölçümünde 140/90 mmHg üzeri olarak tanımlanır"
+    }
+  ]
+}

@@ -11,6 +11,12 @@ import {
   GEMMA4_DEFAULT_MAX_NEW_TOKENS,
   GEMMA4_DEFAULT_PROMPT,
 } from '../config/gemma4-models.mjs';
+import {
+  GEMMA4_WEBGPU_STRATEGIES,
+  classifyGemma4Error,
+  gemma4BrowserHtml,
+  round,
+} from '../lib/gemma4-helpers.mjs';
 import { createTextGenerator } from '../lib/transformers-runtime.mjs';
 
 const modelId = process.argv[2];
@@ -31,17 +37,7 @@ function memSnapshot() {
 }
 
 function classifyError(message) {
-  const m = message.toLowerCase();
-  if (m.includes('bad_alloc') || m.includes('out of memory') || m.includes('oom')) {
-    return 'oom';
-  }
-  if (m.includes('gatherblockquantized') || m.includes('bits==4 or 8')) {
-    return 'gather_quant';
-  }
-  if (m.includes('shader-f16') || m.includes('requires f16')) {
-    return 'shader_f16';
-  }
-  return 'error';
+  return classifyGemma4Error(message);
 }
 
 async function runNodeBackend() {
@@ -107,53 +103,12 @@ async function runNodeBackend() {
   console.log(JSON.stringify(result));
 }
 
-function browserHtml(model, quant, maxTokens) {
-  const prompt = JSON.stringify(GEMMA4_DEFAULT_PROMPT);
-  return `<!DOCTYPE html><html><body><script type="module">
-const prompt = ${prompt};
-try {
-  const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0');
-  env.allowRemoteModels = true;
-  env.useBrowserCache = true;
-  if (!navigator.gpu) throw new Error('navigator.gpu missing');
-  const adapter = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
-  if (!adapter) throw new Error('no WebGPU adapter');
-  const f16 = adapter.features.has('shader-f16');
-  const device = await adapter.requestDevice({ requiredFeatures: f16 ? ['shader-f16'] : [] });
-  env.backends.onnx.webgpu = env.backends.onnx.webgpu ?? {};
-  env.backends.onnx.webgpu.device = device;
-  const loadStart = performance.now();
-  let usedDtype = '${quant}';
-  let generator;
-  try {
-    generator = await pipeline('text-generation', '${model}', { dtype: usedDtype, device: 'webgpu' });
-  } catch (e) {
-    const msg = e?.message ?? String(e);
-    if ((msg.includes('shader-f16') || msg.includes('requires f16')) && usedDtype !== 'q4') {
-      usedDtype = 'q4';
-      generator = await pipeline('text-generation', '${model}', { dtype: usedDtype, device: 'webgpu' });
-    } else {
-      throw e;
-    }
-  }
-  const loadMs = performance.now() - loadStart;
-  const inferStart = performance.now();
-  const out = await generator(prompt, { max_new_tokens: ${maxTokens}, do_sample: false });
-  window.__RESULT__ = {
-    status: 'ok',
-    load_ms: Math.round(loadMs),
-    infer_ms: Math.round(performance.now() - inferStart),
-    generated_text: out?.[0]?.generated_text ?? null,
-    shader_f16: f16,
-    dtype_used: usedDtype,
-  };
-} catch (e) {
-  window.__RESULT__ = { status: 'error', error: e.message };
-}
-</script></body></html>`;
-}
-
 async function runWebgpu() {
+  const hard = process.argv[6] === '--hard';
+  const strategies = hard
+    ? ['browser:q4-control', 'browser:q4-force-gather', 'browser:q4-dual-ep', 'browser:q8', 'browser:angle-gl']
+    : ['browser:q4-control'];
+
   const result = {
     model_id: modelId,
     backend: 'webgpu',
@@ -167,49 +122,76 @@ async function runWebgpu() {
     error_kind: null,
     shader_f16: null,
     dtype_used: dtype,
+    strategies_tried: [],
   };
 
   const wallStart = performance.now();
-  const server = http.createServer((_req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(browserHtml(modelId, dtype, maxNewTokens));
-  });
-  await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
 
-  try {
-    const browser = await chromium.launch({
-      channel: 'chrome',
-      headless: true,
-      args: ['--enable-unsafe-webgpu', '--use-angle=default'],
+  for (const strategyName of strategies) {
+    const spec = GEMMA4_WEBGPU_STRATEGIES[strategyName];
+    if (!spec) continue;
+
+    const attempt = { strategy: strategyName, status: 'pending' };
+    result.strategies_tried.push(attempt);
+
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(gemma4BrowserHtml(modelId, { ...spec, dtype }, GEMMA4_DEFAULT_PROMPT, maxNewTokens));
     });
+    await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
+
     try {
-      const page = await browser.newPage();
-      page.setDefaultTimeout(3_600_000);
-      await page.goto(`http://127.0.0.1:${PORT}/`);
-      await page.waitForFunction(() => window.__RESULT__, null, { timeout: 3_600_000 });
-      const payload = await page.evaluate(() => window.__RESULT__);
-      if (payload.status !== 'ok') {
-        throw new Error(payload.error);
+      const browser = await chromium.launch({
+        channel: 'chrome',
+        headless: true,
+        args: spec.args ?? ['--enable-unsafe-webgpu', '--use-angle=default'],
+      });
+      try {
+        const page = await browser.newPage();
+        page.setDefaultTimeout(3_600_000);
+        await page.goto(`http://127.0.0.1:${PORT}/`);
+        await page.waitForFunction(() => window.__RESULT__, null, { timeout: 3_600_000 });
+        const payload = await page.evaluate(() => window.__RESULT__);
+        if (payload.status !== 'ok') {
+          throw new Error(payload.error);
+        }
+
+        result.load_ms = payload.load_ms;
+        result.infer_ms = payload.infer_ms;
+        result.generated_text = payload.generated_text;
+        result.shader_f16 = payload.shader_f16;
+        result.dtype_used = payload.dtype_used;
+        result.webgpu_strategy = strategyName;
+        if (payload.dtype_used && payload.dtype_used !== dtype) {
+          result.webgpu_dtype_fallback = { from: dtype, to: payload.dtype_used };
+        }
+        result.status = 'ok';
+        attempt.status = 'ok';
+        await browser.close();
+        server.close();
+        break;
+      } catch (e) {
+        await browser.close();
+        const msg = (e?.message ?? String(e)).slice(0, 300);
+        attempt.status = 'error';
+        attempt.error = msg;
+        result.error = msg;
+        result.error_kind = classifyError(msg);
+        result.status = result.load_ms != null ? 'infer_error' : 'load_error';
       }
-      result.load_ms = payload.load_ms;
-      result.infer_ms = payload.infer_ms;
-      result.generated_text = payload.generated_text;
-      result.shader_f16 = payload.shader_f16;
-      result.dtype_used = payload.dtype_used;
-      if (payload.dtype_used && payload.dtype_used !== dtype) {
-        result.webgpu_dtype_fallback = { from: dtype, to: payload.dtype_used };
-      }
-      result.status = 'ok';
+    } catch (e) {
+      const msg = (e?.message ?? String(e)).slice(0, 300);
+      attempt.status = 'error';
+      attempt.error = msg;
+      result.error = msg;
+      result.error_kind = classifyError(msg);
+      result.status = 'load_error';
     } finally {
-      await browser.close();
+      server.close();
     }
-  } catch (e) {
-    const msg = (e?.message ?? String(e)).slice(0, 500);
-    result.error = msg;
-    result.error_kind = classifyError(msg);
-    result.status = result.load_ms != null ? 'infer_error' : 'load_error';
-  } finally {
-    server.close();
+
+    if (result.status === 'ok') break;
+    if (!hard) break;
   }
 
   result.total_ms = round(performance.now() - wallStart);

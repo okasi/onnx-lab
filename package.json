@@ -14,7 +14,12 @@
     "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control",
     "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs",
     "probe:gemma4": "node --expose-gc scripts/probe-gemma4-matrix.mjs",
-    "probe:gemma4:quick": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick"
+    "probe:gemma4:quick": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick",
+    "probe:gemma4:hard": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick --hard",
+    "probe:gemma4:webgpu": "node scripts/probe-gemma4-hard.mjs",
+    "benchmark:gemma4": "node --expose-gc scripts/benchmark-gemma4.mjs",
+    "benchmark:gemma4:quick": "node --expose-gc scripts/benchmark-gemma4.mjs --quick",
+    "leaderboard:gemma4": "node scripts/generate-gemma4-leaderboard.mjs"
   },
   "repository": {
     "type": "git",

@@ -193,6 +193,18 @@ Backends tested: **cpu**, **wasm-jsep**, **wasm** (asyncify), **webgpu** (headle
 
 Results: `results/probe-gemma4-matrix-<timestamp>.json` with per-cell `load_ms`, `infer_ms`, `status` (`ok` / `infer_error` / `load_error`).
 
+**Benchmark** (multi-prompt timing, memory, tok/s):
+
+```bash
+npm run benchmark:gemma4:quick     # E2B q4+q8 cpu+webgpu, 3 prompts
+npm run benchmark:gemma4           # all models × quants × backends (fp32 skipped by default)
+npm run leaderboard:gemma4         # GEMMA4_LEADERBOARD.md
+node scripts/benchmark-gemma4.mjs --model E2B-it,E4B-it --backend cpu --max-prompts 3
+node scripts/probe-gemma4-hard.mjs # WebGPU strategy sweep (Chrome)
+```
+
+See **[GEMMA4_LEADERBOARD.md](./GEMMA4_LEADERBOARD.md)** for merged benchmark results.
+
 ## Retrieval metrics (robust)
 
 | Metric | Meaning |

@@ -32,10 +32,6 @@ function hasFlag(flag) {
   return process.argv.includes(flag);
 }
 
-function parseList(value) {
-  return value?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;
-}
-
 function buildMatrix() {
   if (hasFlag('--quick')) {
     const model = findGemma4Model('E2B-it');
@@ -67,6 +63,12 @@ function buildMatrix() {
   return cells;
 }
 
+const HARD_MODE = hasFlag('--hard');
+
+function parseList(value) {
+  return value?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;
+}
+
 async function main() {
   const cells = buildMatrix();
   console.log(`Gemma 4 probe matrix — ${cells.length} cell(s)\n`);
@@ -75,7 +77,7 @@ async function main() {
   for (const { model, dtype, backend } of cells) {
     const label = `${model.slug.padEnd(14)} ${dtype.padEnd(6)} ${backend.padEnd(9)}`;
     process.stdout.write(`→ ${label} … `);
-    const r = await runWorker(model.id, backend, dtype);
+    const r = await runWorker(model.id, backend, dtype, HARD_MODE);
     results.push({ ...r, model_slug: model.slug, model_name: model.name });
     if (r.status === 'ok') {
       const text = (r.generated_text ?? '').replace(/\s+/g, ' ').slice(0, 48);
@@ -102,13 +104,14 @@ async function main() {
   console.log(`\nWrote ${outPath}`);
 }
 
-function runWorker(modelId, backend, dtype) {
+function runWorker(modelId, backend, dtype, hard = false) {
   return new Promise((resolve) => {
-    const child = spawn(
-      process.execPath,
-      ['--expose-gc', worker, modelId, backend, dtype],
-      { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] },
-    );
+    const workerArgs = ['--expose-gc', worker, modelId, backend, dtype];
+    if (hard && backend === 'webgpu') workerArgs.push('--hard');
+    const child = spawn(process.execPath, workerArgs, {
+      cwd: root,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (d) => { stdout += d; });
