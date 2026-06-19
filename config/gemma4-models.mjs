@@ -25,7 +25,7 @@ export const GEMMA4_MODELS = [
     name: 'Gemma 4 E2B IT QAT Mobile',
     url: 'https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/tree/main/onnx',
     quants: ['q2f16'],
-    note: 'Mobile QAT — q2f16 only (2-bit gather may fail on CPU/asyncify WASM).',
+    note: 'Mobile QAT — q2f16 only; needs ORT 1.27+ for GatherBlockQuantized bits=2 (see docs/gemma4-q2f16.md).',
   },
   {
     id: 'onnx-community/gemma-4-E4B-it-qat-mobile-ONNX',

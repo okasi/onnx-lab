@@ -185,11 +185,14 @@ Backends tested: **cpu**, **wasm-jsep**, **wasm** (asyncify), **webgpu** (headle
 
 | Issue | Symptom |
 |-------|---------|
-| q2f16 (mobile QAT) | `GatherBlockQuantized` only supports 4/8 bits on CPU and WASM |
+| q2f16 (mobile QAT) | `embed_tokens` uses `GatherBlockQuantized` **bits=2** — fails on ORT ≤1.26 CPU/WebGPU; decoder `MatMulNBits` 2-bit **loads on CPU** |
+| q2f16 fix | Needs **ORT 1.27+** for CPU + WebGPU native gather; WASM JSEP gather shader still 4-bit hardcoded |
 | WASM asyncify | Missing `GatherBlockQuantized` for q4/q4f16 — use **wasm-jsep** |
 | WASM infer OOM | E2B/E4B decoder is multi-GB; load may succeed but `std::bad_alloc` on infer |
 | WebGPU q4f16/q2f16 | Needs `shader-f16`; probe falls back to q4 in browser |
 | fp32 / E4B | Very large shard counts and RAM; expect slow downloads |
+
+See **[docs/gemma4-q2f16.md](./docs/gemma4-q2f16.md)** for 2-bit gather research (ops anatomy, three ORT code paths, upgrade checklist).
 
 Results: `results/probe-gemma4-matrix-<timestamp>.json` with per-cell `load_ms`, `infer_ms`, `status` (`ok` / `infer_error` / `load_error`).
 
