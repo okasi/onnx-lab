@@ -24,7 +24,8 @@
     "build:ort:web": "bash scripts/build-ort-web.sh",
     "build:ort:all": "bash scripts/build-ort.sh && bash scripts/build-ort-web.sh",
     "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs",
-    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs"
+    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs",
+    "eval:gemma4:quality": "node --expose-gc scripts/eval-gemma4-quality.mjs"
   },
   "repository": {
     "type": "git",
