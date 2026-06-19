@@ -1,7 +1,7 @@
 {
-  "name": "onnx-exploration",
+  "name": "onnx-lab",
   "version": "1.0.0",
-  "description": "ONNX embedding model exploration with Transformers.js (WASM, CPU, WebGPU) and Swedish/Turkish benchmarks",
+  "description": "ONNX model lab — embeddings and LLMs with Transformers.js (WASM, CPU, WebGPU) and benchmarks",
   "type": "module",
   "scripts": {
     "generate:corpus": "node scripts/generate-corpus.mjs",
@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/okasi/onnx-exploration.git"
+    "url": "git+https://github.com/okasi/onnx-lab.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/okasi/onnx-exploration/issues"
+    "url": "https://github.com/okasi/onnx-lab/issues"
   },
-  "homepage": "https://github.com/okasi/onnx-exploration#readme",
+  "homepage": "https://github.com/okasi/onnx-lab#readme",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"
   },

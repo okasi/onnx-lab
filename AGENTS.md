@@ -1,6 +1,6 @@
-# onnx-exploration
+# onnx-lab
 
-This repository explores multilingual **ONNX embedding models** with **Transformers.js** across **WASM**, **CPU**, and **WebGPU** backends. The main benchmark uses **Swedish** and **Turkish** long-form text; additional scripts probe quant compatibility, runtime bootstrap, and browser WebGPU paths.
+ONNX model lab for **embeddings and LLMs** with **Transformers.js** across **WASM**, **CPU**, and **WebGPU**. Includes Swedish/Turkish embedding benchmarks, quant compatibility probes, and runtime bootstrap notes.
 
 ## Quick start
 

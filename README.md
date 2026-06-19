@@ -1,6 +1,6 @@
-# onnx-exploration
+# onnx-lab
 
-Exploring **ONNX embedding models** with **Transformers.js** across execution backends (WASM, CPU, WebGPU) and quantization variants. The primary benchmark is Swedish/Turkish multilingual retrieval on long-form text, but the repo also includes backend probes, quant matrices, and runtime hardening notes.
+ONNX model lab for **embeddings and LLMs** with **Transformers.js** across WASM, CPU, and WebGPU. Includes Swedish/Turkish embedding benchmarks, quant matrices, backend probes, and runtime notes.
 
 ## Recommended pick: EmbeddingGemma 300M **q4f16**
 
