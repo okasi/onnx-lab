@@ -16,7 +16,73 @@ Deep-dive on why `onnx-community/gemma-4-E*B-it-qat-mobile-ONNX` models fail tod
 | `onnxruntime-node` | 1.24.3 |
 | `onnxruntime-web` | 1.26.0-dev.20260416-b7804b056c |
 
-The [model README](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX) states these checkpoints require **ONNX Runtime 1.27.0+** (build from source until the release ships).
+The [E4B QAT mobile Getting Started](https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX#getting-started) section (same for E2B) states these checkpoints require **ONNX Runtime 1.27.0+**. Until that release is on npm, build and install from [source](https://onnxruntime.ai/docs/build/).
+
+---
+
+## Official Getting Started (model card)
+
+Source: [gemma-4-E4B-it-qat-mobile-ONNX → Getting Started](https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX#getting-started)
+
+The Hub README is the canonical runbook. It uses **Python `onnxruntime` directly** (four separate sessions), not transformers.js. Summary and mapping to this repo:
+
+### Runtime requirement
+
+> You can use these Gemma 4 QAT models with the latest version of ONNX Runtime (**1.27.0 and above**). Until this release is public, you will need to build and install from source.
+
+This matches our finding: bundled transformers.js ORT (1.24.3 / 1.26.0-dev) is **too old** for `GatherBlockQuantized bits=2` in `embed_tokens_q2f16.onnx`.
+
+### Four ONNX sessions (multimodal)
+
+| Session file | Dtype | Role |
+|--------------|-------|------|
+| `onnx/embed_tokens_q2f16.onnx` | q2f16 | Token → embedding lookup; outputs **`inputs_embeds`** + **`per_layer_inputs`** (PLE) |
+| `onnx/decoder_model_merged_q2f16.onnx` | q2f16 | Autoregressive decoder; KV cache via `past_key_values` / `present.*` |
+| `onnx/vision_encoder_fp16.onnx` | fp16 | Image → `image_features` (injected at `image_token_id`) |
+| `onnx/audio_encoder_q2f16.onnx` | q2f16 | Audio → `audio_features` (injected at `audio_token_id`) |
+
+Download shards with `snapshot_download` and `allow_patterns` per file (each `.onnx` has multi-GB `*.onnx_data` siblings).
+
+### Execution providers (order matters)
+
+```python
+providers = ['WebGpuExecutionProvider', 'CPUExecutionProvider']
+```
+
+WebGPU is **first** — this is the intended on-device path. CPU is fallback. The model card does **not** document WASM/JSEP.
+
+### Generation loop (high level)
+
+1. **Embed:** `inputs_embeds, per_layer_inputs = embed_session.run(None, {"input_ids": input_ids})`
+2. **Multimodal inject (once):** scatter `vision_session` / `audio_session` features into `inputs_embeds` at image/audio token positions.
+3. **Decode:** `decoder_session.run` with `inputs_embeds`, `attention_mask`, **`per_layer_inputs`**, `position_ids`, `num_logits_to_keep`, and `past_key_values`.
+4. **KV init:** empty cache — `past_key_values` tensors shaped `[batch, heads, 0, head_dim]` (fp16 or fp32 per input type).
+5. **Sample:** greedy `argmax` on `logits[:, -1]`; append token; roll `past_key_values` from `present.*` outputs.
+
+`per_layer_inputs` is required — Gemma 4 E2B/E4B use **Per-Layer Embeddings (PLE)**. Text-only transformers.js loads `embed_tokens` + `decoder_model_merged` but the decoder still expects `per_layer_inputs` from the embed session.
+
+### transformers.js equivalent (text-only)
+
+```javascript
+import { pipeline } from '@huggingface/transformers';
+
+const gen = await pipeline('text-generation', 'onnx-community/gemma-4-E4B-it-qat-mobile-ONNX', {
+  device: 'webgpu',   // matches transformers.js_config.device
+  dtype: 'q2f16',     // or per-component map from config.json
+});
+```
+
+Still blocked today until ORT 1.27+ is wired into transformers.js. This repo probes with `createTextGenerator()` (`lib/transformers-runtime.mjs`) — same ORT version constraint.
+
+### Best practices (from model card)
+
+| Topic | Recommendation |
+|-------|----------------|
+| Sampling | `temperature=1.0`, `top_p=0.95`, `top_k=64` |
+| Thinking | `<|think|>` at start of system prompt to enable; strip thoughts from multi-turn history |
+| Modality order | Image **before** text; audio **after** text |
+| Image tokens | Budgets: 70, 140, 280, 560, 1120 (higher = more detail, more compute) |
+| Audio/video limits | Audio ≤30s; video ≤60s at 1 fps |
 
 ---
 
@@ -25,7 +91,7 @@ The [model README](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobi
 | Component | 2-bit op | Blocker in ORT ≤1.26 | Status on ORT `main` (Jun 2026) |
 |-----------|----------|----------------------|----------------------------------|
 | `embed_tokens_q2f16.onnx` | `GatherBlockQuantized` **bits=2** | **Fails session init** on CPU and WebGPU native EP | CPU + WebGPU native fixed ([#28530](https://github.com/microsoft/onnxruntime/pull/28530), [#29054](https://github.com/microsoft/onnxruntime/pull/29054)) — targets **ORT 1.27** |
-| `decoder_model_merged_q2f16.onnx` | `MatMulNBits` **bits=2** (41 layers) | **Loads on CPU** (ORT 1.26 verified) | Already supported; JSEP WGSL shader has `bits===2` branches |
+| `decoder_model_merged_q2f16.onnx` | `MatMulNBits` **bits=2** (E2B: 41 layers; E4B: 1) | **Loads on CPU** (ORT 1.26 verified) | Already supported; JSEP WGSL shader has `bits===2` branches |
 | WASM JSEP `GatherBlockQuantized` | TS/WGSL shader | **4-bit hardcoded** — ignores `bits` attribute | **Not fixed** by native WebGPU PRs; needs separate JSEP shader work |
 
 **Bottom line:** the immediate failure is the **embedding lookup**, not the decoder. Upgrading to ORT **1.27+** unblocks CPU and browser **WebGPU native** paths. **WASM JSEP** (Node `wasm-jsep` backend) still needs a JSEP shader update even after the native WebGPU fix.
@@ -36,25 +102,27 @@ The [model README](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobi
 
 ### `embed_tokens_q2f16.onnx` — where 2-bit gather lives
 
-Inspected graph (`E2B-it-qat-mobile`):
+Inspected graphs:
 
-| Node | Op | `bits` | `block_size` | Notes |
-|------|----|--------|--------------|-------|
-| Main vocab embedding | `GatherBlockQuantized` | **2** | 256 | `gather_axis=0`, `quantize_axis=1`; weight `uint8`, scales `float16` |
-| Per-layer embedding (PLE) | `GatherBlockQuantized` | **4** | 256 | Same layout; second lookup table |
+| Model | `GatherBlockQuantized` | `bits` values | Outputs |
+|-------|------------------------|---------------|---------|
+| **E2B** | 2 nodes | 2 (main vocab) + **4** (PLE table) | `inputs_embeds`, `per_layer_inputs` |
+| **E4B** | 2 nodes | **2** + **2** (both tables 2-bit) | `inputs_embeds`, `per_layer_inputs` |
 
-There are **2** `GatherBlockQuantized` nodes and **0** `MatMulNBits` nodes in this file.
+Shared layout: `gather_axis=0`, `quantize_axis=1`, `block_size=256`; weight `uint8`, scales `float16`. The model card’s embed step returns **both** outputs — the decoder requires `per_layer_inputs` for PLE.
 
 Packing for `bits=2` on `uint8` data: **4 values per byte**, low-order bits first (per [ContribOperators](https://github.com/microsoft/onnxruntime/blob/main/docs/ContribOperators.md#commicrosoftgatherblockquantized)). Default zero point when omitted: `2^(bits-1)` → **2** for 2-bit.
 
 ### `decoder_model_merged_q2f16.onnx` — MatMul, not Gather
 
-| Op | Count | `bits` distribution |
-|----|-------|---------------------|
-| `MatMulNBits` | 241 | 2-bit: 41, 4-bit: 130, 8-bit: 70 |
-| `GatherBlockQuantized` | **0** | — |
+| Model | `MatMulNBits` count | `bits` distribution |
+|-------|---------------------|---------------------|
+| **E2B** | 241 | 2-bit: **41**, 4-bit: 130, 8-bit: 70 |
+| **E4B** | 301 | 2-bit: **1**, 4-bit: 216, 8-bit: 84 |
 
-Sample 2-bit node: `block_size=32`, `K=1536`, `N=24576`, no zero-point input (uses default `zp = 2`).
+No `GatherBlockQuantized` nodes in either decoder. E4B mobile schema uses 2-bit matmul in far fewer layers than E2B (1 vs 41), but **both** models still fail at load because `embed_tokens` runs first.
+
+Sample E2B 2-bit node: `block_size=32`, `K=1536`, `N=24576`, no zero-point input (default `zp = 2`).
 
 **Implication:** once `embed_tokens` loads, the decoder is much closer to working on current ORT CPU. The Eloquent issue ([#28895](https://github.com/microsoft/onnxruntime/issues/28895)) mentions “same error on the decoder”, but in our ONNX export the decoder does **not** contain `GatherBlockQuantized`; the failure happens when loading `embed_tokens` first.
 
@@ -185,7 +253,7 @@ Fresh verification (ORT 1.26.0, `/tmp` install):
 
 ### Path A — Browser WebGPU (intended deployment)
 
-**Best match for the model card’s `device: "webgpu"`.**
+**Matches the model card:** `providers = ['WebGpuExecutionProvider', 'CPUExecutionProvider']` and `transformers.js_config.device: "webgpu"`.
 
 1. Use **ONNX Runtime ≥ 1.27** (release or build from `main` after 2026-06-15).
 2. Bump `onnxruntime-web` in transformers.js (or override locally).
@@ -196,11 +264,13 @@ Fresh verification (ORT 1.26.0, `/tmp` install):
 ```javascript
 import { pipeline } from '@huggingface/transformers';
 
-const gen = await pipeline('text-generation', 'onnx-community/gemma-4-E2B-it-qat-mobile-ONNX', {
+const gen = await pipeline('text-generation', 'onnx-community/gemma-4-E4B-it-qat-mobile-ONNX', {
   device: 'webgpu',
   dtype: 'q2f16',
 });
 ```
+
+For the full multimodal flow (vision + audio + manual KV loop), follow the [E4B Getting Started](https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX#getting-started) Python example.
 
 **Track:** [ORT #28895](https://github.com/microsoft/onnxruntime/issues/28895) (filed for Eloquent / transformers.js), fixed by [#29054](https://github.com/microsoft/onnxruntime/pull/29054) on `main`.
 
@@ -280,7 +350,8 @@ session_options: {
 
 ## References
 
-- [Gemma 4 E2B QAT mobile ONNX README](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX) — ORT 1.27 requirement, Python WebGPU example
+- [Gemma 4 E4B QAT mobile ONNX — Getting Started](https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX#getting-started) — canonical ORT 1.27+ runbook (4 sessions, WebGPU-first)
+- [Gemma 4 E2B QAT mobile ONNX](https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX) — same layout, smaller variant
 - [GatherBlockQuantized contrib op docs](https://github.com/microsoft/onnxruntime/blob/main/docs/ContribOperators.md#commicrosoftgatherblockquantized)
 - [ORT #28895 — WebGPU 2-bit gather](https://github.com/microsoft/onnxruntime/issues/28895)
 - [ORT #28530 — CPU/WebGPU 2-bit gather](https://github.com/microsoft/onnxruntime/pull/28530)

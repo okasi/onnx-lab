@@ -167,7 +167,7 @@ Four Hugging Face repos (text-only via `Gemma4ForCausalLM` — loads `embed_toke
 | Gemma 4 E2B IT | https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX/tree/main/onnx | fp32, fp16, q4, q4f16, q8 (`_quantized`) |
 | Gemma 4 E4B IT | https://huggingface.co/onnx-community/gemma-4-E4B-it-ONNX/tree/main/onnx | fp32, fp16, q4, q4f16, q8 |
 | Gemma 4 E2B IT QAT Mobile | https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/tree/main/onnx | **q2f16 only** |
-| Gemma 4 E4B IT QAT Mobile | https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX/tree/main/onnx | **q2f16 only** |
+| Gemma 4 E4B IT QAT Mobile | https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX/tree/main/onnx | **q2f16 only** — [Getting Started](https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX#getting-started) requires ORT 1.27+, WebGPU-first |
 
 Probe matrix (model × quant × backend):
 
