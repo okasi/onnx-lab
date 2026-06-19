@@ -114,7 +114,7 @@ function buildMarkdown(run, results) {
   );
 
   const lines = [];
-  lines.push('# Embedding Benchmark Leaderboard');
+  lines.push('# ONNX Exploration Leaderboard');
   lines.push('');
   lines.push('Swedish/Turkish corpus (54 documents) · Transformers.js · Node.js WASM with CPU fallback');
   lines.push('');

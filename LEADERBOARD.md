@@ -1,6 +1,6 @@
-# Embedding Benchmark Leaderboard
+# ONNX Exploration Leaderboard
 
-Swedish/Turkish corpus (54 documents) · Transformers.js · Node.js WASM with CPU fallback
+Swedish/Turkish corpus (54 documents) · Transformers.js · Node.js WASM with CPU fallback · [onnx-exploration](https://github.com/okasi/onnx-exploration)
 
 ## Run summary
 

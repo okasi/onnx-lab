@@ -1,6 +1,6 @@
-# embedding-tests
+# onnx-exploration
 
-Swedish and Turkish embedding benchmarks for ONNX multilingual models using **Transformers.js** on Node.js (WASM / CPU).
+Exploring **ONNX embedding models** with **Transformers.js** across execution backends (WASM, CPU, WebGPU) and quantization variants. The primary benchmark is Swedish/Turkish multilingual retrieval on long-form text, but the repo also includes backend probes, quant matrices, and runtime hardening notes.
 
 ## Recommended pick: EmbeddingGemma 300M **q4f16**
 
@@ -44,7 +44,8 @@ Full numbers: **[LEADERBOARD.md](./LEADERBOARD.md)** (rank 12 by composite score
 
 - **54 long documents** (Swedish + Turkish) on mortgages, legal, and medical topics
 - Benchmark runner for **6 Hugging Face ONNX embedding models** and their quantization variants
-- Runtime bootstrap for Node.js WASM / CPU / WebGPU probes (`lib/transformers-runtime.mjs`)
+- Backend probes: WASM-jsep, WebGPU, CPU fallback paths (`lib/transformers-runtime.mjs`)
+- Quant compatibility matrices (e.g. EmbeddingGemma on CPU + WebGPU)
 
 See **[AGENTS.md](./AGENTS.md)** for full instructions, model links, CLI flags, and agent workflow.
 
@@ -56,6 +57,7 @@ npm run benchmark:quick      # fast smoke test
 npm run benchmark            # full matrix (slow; downloads models)
 npm run probe:embeddinggemma # Node backend matrix for Gemma q4f16
 npm run probe:webgpu         # Chrome WebGPU probe
+npm run probe:gemma-quants   # CPU + WebGPU quant matrix
 npm run leaderboard          # regenerate LEADERBOARD.md from results/
 ```
 

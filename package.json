@@ -1,7 +1,7 @@
 {
-  "name": "embedding-tests",
+  "name": "onnx-exploration",
   "version": "1.0.0",
-  "description": "Swedish/Turkish embedding benchmarks with Transformers.js WASM on Node.js",
+  "description": "ONNX embedding model exploration with Transformers.js (WASM, CPU, WebGPU) and Swedish/Turkish benchmarks",
   "type": "module",
   "scripts": {
     "generate:corpus": "node scripts/generate-corpus.mjs",
@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/okasi/embedding-tests.git"
+    "url": "git+https://github.com/okasi/onnx-exploration.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/okasi/embedding-tests/issues"
+    "url": "https://github.com/okasi/onnx-exploration/issues"
   },
-  "homepage": "https://github.com/okasi/embedding-tests#readme",
+  "homepage": "https://github.com/okasi/onnx-exploration#readme",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0"
   },

@@ -1,6 +1,6 @@
-# Embedding benchmark agents
+# onnx-exploration
 
-This repository benchmarks multilingual ONNX embedding models on **Swedish** and **Turkish** long-form text using **Transformers.js** with the **WASM** execution provider in **Node.js only** (no browser, no Python).
+This repository explores multilingual **ONNX embedding models** with **Transformers.js** across **WASM**, **CPU**, and **WebGPU** backends. The main benchmark uses **Swedish** and **Turkish** long-form text; additional scripts probe quant compatibility, runtime bootstrap, and browser WebGPU paths.
 
 ## Quick start
 
