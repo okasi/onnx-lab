@@ -291,9 +291,40 @@ For the full multimodal flow (vision + audio + manual KV loop), follow the [E4B 
 2. `parseGatherBlockQuantizedAttributes` must forward `bits` from ONNX.
 3. Until then, JSEP may appear to “run” 4-bit gather graphs but will silently mis-dequantize 2-bit weights.
 
-### Path D — Build ORT from `main` (now)
+### Path D — Build ORT from source (this repo)
 
-For early adopters before npm 1.27:
+**Implemented:** `npm run build:ort` clones `microsoft/onnxruntime` to `vendor/onnxruntime`, builds **Release + nodejs** with `CC=gcc CXX=g++`, and wires the result via `package.json` overrides.
+
+```bash
+# One-time build (~15–25 min on 4 cores; needs ~10 GB disk)
+npm run build:ort
+
+# Reinstall deps to use local onnxruntime-node 1.28.0
+ONNXRUNTIME_NODE_INSTALL=skip npm install
+
+# Smoke test 2-bit embed_tokens
+npm run verify:ort:q2f16
+
+# Full text-gen on mobile q2f16 (CPU)
+node --expose-gc scripts/benchmark-gemma4-variant.mjs \
+  --model-id onnx-community/gemma-4-E2B-it-qat-mobile-ONNX \
+  --model-slug E2B-qat-mobile --dtype q2f16 --backend cpu --max-prompts 1
+```
+
+**Verified on this VM (ORT 1.28.0 from `main`):**
+
+| Check | Result |
+|-------|--------|
+| `embed_tokens_q2f16` session create | **OK** (was FAIL on ORT 1.24–1.26) |
+| E2B-qat-mobile `q2f16` cpu text-gen | **OK** — load 3.8s, ~12.8s/prompt, 1.25 tok/s, RSS ~1.7 GB |
+
+`vendor/onnxruntime/` is gitignored; only `scripts/build-ort.sh` and `package.json` overrides are committed.
+
+**Compiler note:** default `c++` on this image was **clang** without `-lstdc++`; the build script forces `gcc`/`g++`.
+
+### Path E — Build ORT from `main` manually
+
+For early adopters or custom EP flags (WebGPU, CUDA):
 
 ```bash
 # See https://onnxruntime.ai/docs/build/
@@ -303,7 +334,7 @@ For early adopters before npm 1.27:
 
 Wire the built `onnxruntime-node` / `onnxruntime-web` into transformers.js via `npm link` or `package.json` overrides.
 
-### Path E — Use a different artifact (no 2-bit gather)
+### Path F — Use a different artifact (no 2-bit gather)
 
 | Format | Where | Notes |
 |--------|-------|-------|
@@ -316,13 +347,22 @@ Wire the built `onnxruntime-node` / `onnxruntime-web` into transformers.js via `
 
 ## Upgrade checklist for this repo
 
-When ORT 1.27 lands on npm:
+**Done locally:** ORT **1.28.0** built via `npm run build:ort`; `onnxruntime-node` overridden to `file:vendor/onnxruntime/js/node`.
 
-1. Bump `@huggingface/transformers` or override `onnxruntime-node` + `onnxruntime-web` versions in `package.json`.
-2. Re-run `npm run probe:gemma4` with `--model E2B-qat-mobile,E4B-qat-mobile --dtype q2f16 --backend cpu,webgpu`.
-3. Re-run `npm run benchmark:gemma4` for mobile models.
-4. **Separately** track JSEP gather 2-bit — add `wasm-jsep` to mobile probe matrix only after upstream JSEP shader merges.
-5. Document `shader-f16` requirement for WebGPU q2f16 (same as q4f16).
+When ORT 1.27+ lands on npm (no local build):
+
+1. Remove `file:` deps / overrides from `package.json` and bump `@huggingface/transformers`.
+2. Re-run probes and benchmarks below.
+3. **Separately** track JSEP gather 2-bit for `wasm-jsep` backend.
+4. Document `shader-f16` requirement for WebGPU q2f16.
+
+**With local ORT 1.28:**
+
+```bash
+npm run verify:ort:q2f16
+npm run probe:gemma4:quick   # add --model E2B-qat-mobile --dtype q2f16 --backend cpu
+npm run benchmark:gemma4:quick  # extend matrix for q2f16 when ready
+```
 
 **Optional session options (decoder MatMulNBits 2-bit on CPU)**
 

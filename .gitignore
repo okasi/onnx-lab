@@ -3,3 +3,6 @@ node_modules/
 results/
 *.log
 .DS_Store
+vendor/onnxruntime/
+vendor/ort-build.log
+vendor/ort-clone.log
