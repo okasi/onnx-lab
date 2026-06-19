@@ -20,7 +20,8 @@ Full runs download ONNX weights from Hugging Face on first use and cache them un
 | Path | Purpose |
 |------|---------|
 | `data/benchmark-corpus.json` | 54 long documents (27 SV + 27 TR): mortgage, legal, medical |
-| `config/models.mjs` | Model registry with Hugging Face links |
+| `config/models.mjs` | Embedding model registry with Hugging Face links |
+| `config/gemma4-models.mjs` | Gemma 4 LLM registry (E2B/E4B, standard + QAT mobile) |
 | `lib/transformers-runtime.mjs` | Node.js WASM / WebGPU / CPU runtime bootstrap |
 | `scripts/benchmark.mjs` | Main benchmark runner |
 | `scripts/generate-corpus.mjs` | Regenerates the corpus JSON |
@@ -157,6 +158,41 @@ Probe scripts: `npm run probe:embeddinggemma`, `npm run probe:webgpu`.
 
 Example full-corpus result (54 docs, CPU): quality **~0.63**, cross-lingual cosine **~0.81**, XL-R@5 **0.72**.
 
+## Gemma 4 ONNX LLMs (text generation)
+
+Four Hugging Face repos (text-only via `Gemma4ForCausalLM` — loads `embed_tokens` + `decoder_model_merged` only):
+
+| Model | Hub ONNX folder | Quants |
+|-------|-----------------|--------|
+| Gemma 4 E2B IT | https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX/tree/main/onnx | fp32, fp16, q4, q4f16, q8 (`_quantized`) |
+| Gemma 4 E4B IT | https://huggingface.co/onnx-community/gemma-4-E4B-it-ONNX/tree/main/onnx | fp32, fp16, q4, q4f16, q8 |
+| Gemma 4 E2B IT QAT Mobile | https://huggingface.co/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/tree/main/onnx | **q2f16 only** |
+| Gemma 4 E4B IT QAT Mobile | https://huggingface.co/onnx-community/gemma-4-E4B-it-qat-mobile-ONNX/tree/main/onnx | **q2f16 only** |
+
+Probe matrix (model × quant × backend):
+
+```bash
+npm run probe:gemma4:quick                              # E2B q4 smoke (4 backends)
+npm run probe:gemma4                                    # full matrix (slow; multi-GB)
+node scripts/probe-gemma4-matrix.mjs --model E2B-it --dtype q4,q8 --backend cpu,wasm-jsep
+```
+
+Backends tested: **cpu**, **wasm-jsep**, **wasm** (asyncify), **webgpu** (headless Chrome).
+
+**WASM in Node:** pass `use_external_data_format: {}` and hub-relative `session_options.externalData` for all `embed_tokens*` + `decoder_model_merged*` shards (`lib/transformers-runtime.mjs` → `createTextGenerator`).
+
+**Known limitations:**
+
+| Issue | Symptom |
+|-------|---------|
+| q2f16 (mobile QAT) | `GatherBlockQuantized` only supports 4/8 bits on CPU and WASM |
+| WASM asyncify | Missing `GatherBlockQuantized` for q4/q4f16 — use **wasm-jsep** |
+| WASM infer OOM | E2B/E4B decoder is multi-GB; load may succeed but `std::bad_alloc` on infer |
+| WebGPU q4f16/q2f16 | Needs `shader-f16`; probe falls back to q4 in browser |
+| fp32 / E4B | Very large shard counts and RAM; expect slow downloads |
+
+Results: `results/probe-gemma4-matrix-<timestamp>.json` with per-cell `load_ms`, `infer_ms`, `status` (`ok` / `infer_error` / `load_error`).
+
 ## Retrieval metrics (robust)
 
 | Metric | Meaning |
@@ -183,7 +219,8 @@ Record failures instead of hiding them:
 
 When extending this repo:
 
-1. **Add a model** — edit `config/models.mjs` with `id`, `name`, `url`, and any `model_file_name` / `extra_variants`.
+1. **Add an embedding model** — edit `config/models.mjs` with `id`, `name`, `url`, and any `model_file_name` / `extra_variants`.
+2. **Add a Gemma 4 LLM** — edit `config/gemma4-models.mjs`; use `createTextGenerator` from `lib/transformers-runtime.mjs`.
 2. **Regenerate corpus** only if benchmark text requirements change.
 3. **Run quick benchmark** after code changes: `npm run benchmark:quick`.
 4. **Run full benchmark** before publishing results: `npm run benchmark` (long-running; downloads multi-GB weights).

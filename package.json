@@ -12,7 +12,9 @@
     "probe:embeddinggemma": "node --expose-gc scripts/probe-embeddinggemma-backends.mjs",
     "probe:webgpu": "node scripts/probe-webgpu-hard.mjs",
     "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control",
-    "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs"
+    "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs",
+    "probe:gemma4": "node --expose-gc scripts/probe-gemma4-matrix.mjs",
+    "probe:gemma4:quick": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick"
   },
   "repository": {
     "type": "git",
