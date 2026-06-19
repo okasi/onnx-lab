@@ -293,17 +293,20 @@ For the full multimodal flow (vision + audio + manual KV loop), follow the [E4B 
 
 ### Path D — Build ORT from source (this repo)
 
-**Implemented:** `npm run build:ort` clones `microsoft/onnxruntime` to `vendor/onnxruntime`, builds **Release + nodejs** with `CC=gcc CXX=g++`, and wires the result via `package.json` overrides.
+**Implemented:** `npm run build:ort` clones `microsoft/onnxruntime` to `vendor/onnxruntime`, builds **Release + nodejs** with `CC=gcc CXX=g++`, and wires the result via `package.json` overrides. `npm run build:ort:web` builds **onnxruntime-web** WASM variants (base, jsep, webgpu/asyncify) plus JS bundles.
 
 ```bash
-# One-time build (~15–25 min on 4 cores; needs ~10 GB disk)
-npm run build:ort
+# One-time build (~15–25 min node; +30–60 min web WASM on 4 cores; needs ~10 GB disk)
+npm run build:ort          # onnxruntime-node
+npm run build:ort:web      # onnxruntime-web (requires node build source in vendor/)
+# or: npm run build:ort:all
 
-# Reinstall deps to use local onnxruntime-node 1.28.0
+# Reinstall deps to use local ORT 1.28.0 packages
 ONNXRUNTIME_NODE_INSTALL=skip npm install
 
-# Smoke test 2-bit embed_tokens
-npm run verify:ort:q2f16
+# Smoke tests
+npm run verify:ort:q2f16       # CPU: embed_tokens_q2f16
+npm run verify:ort:web:q2f16   # WASM JSEP: embed_tokens_q2f16 (needs .onnx_data shard)
 
 # Full text-gen on mobile q2f16 (CPU)
 node --expose-gc scripts/benchmark-gemma4-variant.mjs \
@@ -315,10 +318,14 @@ node --expose-gc scripts/benchmark-gemma4-variant.mjs \
 
 | Check | Result |
 |-------|--------|
-| `embed_tokens_q2f16` session create | **OK** (was FAIL on ORT 1.24–1.26) |
+| `embed_tokens_q2f16` session create (CPU) | **OK** (was FAIL on ORT 1.24–1.26) |
+| `embed_tokens_q2f16` session create (wasm-jsep) | **OK** (with external data mount) |
 | E2B-qat-mobile `q2f16` cpu text-gen | **OK** — load 3.8s, ~12.8s/prompt, 1.25 tok/s, RSS ~1.7 GB |
+| E2B-qat-mobile `q2f16` wasm-jsep full infer | **OOM** on this VM (~7 GB RSS); load OK |
 
-`vendor/onnxruntime/` is gitignored; only `scripts/build-ort.sh` and `package.json` overrides are committed.
+`vendor/onnxruntime/` is gitignored; only `scripts/build-ort.sh`, `scripts/build-ort-web.sh`, and `package.json` overrides are committed.
+
+**Web build notes:** emsdk is installed from ORT's submodule on first run. A stub `package.json` with `"type":"commonjs"` is written under `vendor/onnxruntime/` so ORT's `wasm_post_build.js` works when the parent repo is ESM. JSPI wasm files are stubbed from asyncify artifacts (transformers.js uses jsep/asyncify, not jspi).
 
 **Compiler note:** default `c++` on this image was **clang** without `-lstdc++`; the build script forces `gcc`/`g++`.
 
@@ -347,7 +354,7 @@ Wire the built `onnxruntime-node` / `onnxruntime-web` into transformers.js via `
 
 ## Upgrade checklist for this repo
 
-**Done locally:** ORT **1.28.0** built via `npm run build:ort`; `onnxruntime-node` overridden to `file:vendor/onnxruntime/js/node`.
+**Done locally:** ORT **1.28.0** built via `npm run build:ort:all`; `onnxruntime-node` and `onnxruntime-web` overridden to `file:vendor/onnxruntime/js/{node,web}`.
 
 When ORT 1.27+ lands on npm (no local build):
 
@@ -360,7 +367,8 @@ When ORT 1.27+ lands on npm (no local build):
 
 ```bash
 npm run verify:ort:q2f16
-npm run probe:gemma4:quick   # add --model E2B-qat-mobile --dtype q2f16 --backend cpu
+npm run verify:ort:web:q2f16
+npm run probe:gemma4:quick   # add --model E2B-qat-mobile --dtype q2f16 --backend cpu,wasm-jsep
 npm run benchmark:gemma4:quick  # extend matrix for q2f16 when ready
 ```
 

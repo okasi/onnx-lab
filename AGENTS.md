@@ -172,8 +172,11 @@ Four Hugging Face repos (text-only via `Gemma4ForCausalLM` — loads `embed_toke
 Probe matrix (model × quant × backend):
 
 ```bash
-npm run build:ort                                       # build local ORT 1.28 for q2f16 (see docs/gemma4-q2f16.md)
-npm run verify:ort:q2f16                                # smoke: 2-bit GatherBlockQuantized
+npm run build:ort                                       # build local ORT 1.28 node (see docs/gemma4-q2f16.md)
+npm run build:ort:web                                   # build onnxruntime-web WASM (base, jsep, webgpu)
+npm run build:ort:all                                   # node + web
+npm run verify:ort:q2f16                                # smoke: 2-bit GatherBlockQuantized (CPU)
+npm run verify:ort:web:q2f16                            # smoke: embed_tokens via wasm-jsep
 npm run probe:gemma4:quick                              # E2B q4 smoke (4 backends)
 npm run probe:gemma4                                    # full matrix (slow; multi-GB)
 node scripts/probe-gemma4-matrix.mjs --model E2B-it --dtype q4,q8 --backend cpu,wasm-jsep
@@ -188,7 +191,7 @@ Backends tested: **cpu**, **wasm-jsep**, **wasm** (asyncify), **webgpu** (headle
 | Issue | Symptom |
 |-------|---------|
 | q2f16 (mobile QAT) | `embed_tokens` uses `GatherBlockQuantized` **bits=2** — fails on ORT ≤1.26 CPU/WebGPU; decoder `MatMulNBits` 2-bit **loads on CPU** |
-| q2f16 fix | **Local:** `npm run build:ort` → onnxruntime-node **1.28**; or wait for ORT **1.27+** npm |
+| q2f16 fix | **Local:** `npm run build:ort:all` → onnxruntime-node/web **1.28**; reinstall with `ONNXRUNTIME_NODE_INSTALL=skip npm install`; or wait for ORT **1.27+** npm |
 | WASM asyncify | Missing `GatherBlockQuantized` for q4/q4f16 — use **wasm-jsep** |
 | WASM infer OOM | E2B/E4B decoder is multi-GB; load may succeed but `std::bad_alloc` on infer |
 | WebGPU q4f16/q2f16 | Needs `shader-f16`; probe falls back to q4 in browser |

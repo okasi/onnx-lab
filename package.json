@@ -21,7 +21,10 @@
     "benchmark:gemma4:quick": "node --expose-gc scripts/benchmark-gemma4.mjs --quick",
     "leaderboard:gemma4": "node scripts/generate-gemma4-leaderboard.mjs",
     "build:ort": "bash scripts/build-ort.sh",
-    "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs"
+    "build:ort:web": "bash scripts/build-ort-web.sh",
+    "build:ort:all": "bash scripts/build-ort.sh && bash scripts/build-ort-web.sh",
+    "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs",
+    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs"
   },
   "repository": {
     "type": "git",
@@ -37,15 +40,18 @@
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
     "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node"
+    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
+    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
   },
   "overrides": {
     "@huggingface/transformers": {
       "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-      "onnxruntime-node": "file:vendor/onnxruntime/js/node"
+      "onnxruntime-node": "file:vendor/onnxruntime/js/node",
+      "onnxruntime-web": "file:vendor/onnxruntime/js/web"
     },
     "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node"
+    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
+    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
   },
   "devDependencies": {
     "playwright-core": "^1.61.0",
