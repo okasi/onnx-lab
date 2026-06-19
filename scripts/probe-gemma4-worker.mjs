@@ -27,10 +27,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const PORT = 8791 + Math.floor(Math.random() * 100);
 
-function round(n, d = 2) {
-  return Number(Number(n).toFixed(d));
-}
-
 function memSnapshot() {
   const m = process.memoryUsage();
   return { rss_mb: round(m.rss / 1024 / 1024), heap_used_mb: round(m.heapUsed / 1024 / 1024) };
