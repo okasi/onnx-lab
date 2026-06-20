@@ -291,17 +291,19 @@ For the full multimodal flow (vision + audio + manual KV loop), follow the [E4B 
 2. `parseGatherBlockQuantizedAttributes` must forward `bits` from ONNX.
 3. Until then, JSEP may appear to “run” 4-bit gather graphs but will silently mis-dequantize 2-bit weights.
 
-### Path D — Build ORT from source (this repo)
+### Path D — Build ORT from source (optional)
 
-**Implemented:** `npm run build:ort` clones `microsoft/onnxruntime` to `vendor/onnxruntime`, builds **Release + nodejs** with `CC=gcc CXX=g++`, and wires the result via `package.json` overrides. `npm run build:ort:web` builds **onnxruntime-web** WASM variants (base, jsep, webgpu/asyncify) plus JS bundles.
+**Default:** use **npm ORT 1.27.0** — [docs/ort-127-install.md](./ort-127-install.md). No build required for q2f16 or E2B q4 speedups.
+
+**Optional local build** for unreleased ORT `main`: `npm run build:ort` clones `microsoft/onnxruntime` to `vendor/onnxruntime`, builds Release + nodejs with `CC=gcc CXX=g++`. `npm run build:ort:web` builds WASM variants + JS bundles.
 
 ```bash
-# One-time build (~15–25 min node; +30–60 min web WASM on 4 cores; needs ~10 GB disk)
+# Optional (~15–90 min); only if you need ORT newer than npm 1.27
 npm run build:ort          # onnxruntime-node
-npm run build:ort:web      # onnxruntime-web (requires node build source in vendor/)
+npm run build:ort:web      # onnxruntime-web (requires vendor source)
 # or: npm run build:ort:all
 
-# Reinstall deps to use local ORT 1.28.0 packages
+# Wire file: deps in package.json, then:
 ONNXRUNTIME_NODE_INSTALL=skip npm install
 
 # Smoke tests
@@ -314,7 +316,7 @@ node --expose-gc scripts/benchmark-gemma4-variant.mjs \
   --model-slug E2B-qat-mobile --dtype q2f16 --backend cpu --max-prompts 1
 ```
 
-**Verified on this VM (ORT 1.28.0 from `main`):**
+**Verified on this VM (ORT 1.27.0 npm / 1.28.0 local build):**
 
 | Check | Result |
 |-------|--------|
@@ -354,16 +356,14 @@ Wire the built `onnxruntime-node` / `onnxruntime-web` into transformers.js via `
 
 ## Upgrade checklist for this repo
 
-**Done locally:** ORT **1.28.0** built via `npm run build:ort:all`; `onnxruntime-node` and `onnxruntime-web` overridden to `file:vendor/onnxruntime/js/{node,web}`.
+**Default:** ORT **1.27.0** from npm — see **[ort-127-install.md](./ort-127-install.md)**. `package.json` pins `onnxruntime-{common,node,web}@1.27.0` with overrides for `@huggingface/transformers`.
 
-When ORT 1.27+ lands on npm (no local build):
+When a newer ORT ships on npm:
 
-1. Remove `file:` deps / overrides from `package.json` and bump `@huggingface/transformers`.
-2. Re-run probes and benchmarks below.
-3. **Separately** track JSEP gather 2-bit for `wasm-jsep` backend.
-4. Document `shader-f16` requirement for WebGPU q2f16.
+1. Bump version in `dependencies` and `overrides`.
+2. `npm install` and re-run verification below.
 
-**With local ORT 1.28:**
+**With npm ORT 1.27:**
 
 ```bash
 npm run verify:ort:q2f16

@@ -52,7 +52,7 @@ See **[AGENTS.md](./AGENTS.md)** for full instructions, model links, CLI flags, 
 ## Commands
 
 ```bash
-npm install
+npm install                  # pins ONNX Runtime 1.27.0 — see docs/ort-127-install.md
 npm run benchmark:quick      # fast smoke test
 npm run benchmark            # full matrix (slow; downloads models)
 npm run probe:embeddinggemma # Node backend matrix for Gemma q4f16

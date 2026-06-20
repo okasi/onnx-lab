@@ -1,6 +1,8 @@
 # Gemma 4 — ORT version comparison (CPU speed)
 
-Compared **bundled 1.24.3** (default in `@huggingface/transformers` 4.2.0), **npm 1.27.0**, and **local 1.28.0** (ORT `main` build) on CPU for the four production quants.
+**Default install:** npm **ORT 1.27.0** — see **[docs/ort-127-install.md](./docs/ort-127-install.md)**.
+
+Compared **bundled 1.24.3** (default in `@huggingface/transformers` 4.2.0 without overrides), **npm 1.27.0**, and **local 1.28.0** (ORT `main` build) on CPU for the four production quants.
 
 **Setup:** 6 prompts × 8 new tokens, greedy, `device: cpu`, models `onnx-community/gemma-4-{E2B,E4B}-it-ONNX`.
 
@@ -35,32 +37,18 @@ All five 1.27 E2B-q4 runs beat the 1.24 mean (8.49). Lowest 1.27 run (8.88) is s
 - **E2B q4** benefits most: **~10% tok/s** on 1.27 (5-run avg), ~7% on local 1.28.
 - **E4B q4 / q4f16** show modest ~2–4% gains on 1.27; flat on local 1.28 (within noise).
 - **1.27 npm slightly beats local 1.28** on this VM for E2B q4 — published binaries may be better optimized than a generic source build.
-- **Practical recommendation:** override to **`1.27.0` from npm** unless you need ORT `main` features (e.g. unreleased ops).
+- **Practical recommendation:** use **`onnxruntime-*@1.27.0` from npm** (configured in this repo's `package.json`).
 
-## Install npm 1.27.0 (no build)
+## Install npm 1.27.0
 
-```json
-{
-  "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
-    "onnxruntime-common": "1.27.0",
-    "onnxruntime-node": "1.27.0",
-    "onnxruntime-web": "1.27.0"
-  },
-  "overrides": {
-    "@huggingface/transformers": {
-      "onnxruntime-common": "1.27.0",
-      "onnxruntime-node": "1.27.0",
-      "onnxruntime-web": "1.27.0"
-    }
-  }
-}
-```
+Full guide: **[docs/ort-127-install.md](./docs/ort-127-install.md)**
 
 ```bash
 npm install
 node -e "import('onnxruntime-node').then(m => console.log(m.env.versions?.common))"  # 1.27.0
 ```
+
+`package.json` pins `onnxruntime-{common,node,web}@1.27.0` and overrides `@huggingface/transformers` to use them.
 
 ## Raw results
 
@@ -70,4 +58,4 @@ node -e "import('onnxruntime-node').then(m => console.log(m.env.versions?.common
 | 1.27 | 5 | `results/benchmark-gemma4-speed-ort127-run{1..5}.json` |
 | 1.28 | 3 | `results/benchmark-gemma4-speed-ort128.json`, `…-ort128-run{2,3}.json` |
 
-Local 1.28 build: `npm run build:ort:all` + `file:vendor/onnxruntime/js/…` overrides (see `.cursor/skills/ort-128-e2b-q4/SKILL.md`).
+Local 1.28 build (optional): `npm run build:ort:all` — see [docs/gemma4-q2f16.md](./docs/gemma4-q2f16.md).

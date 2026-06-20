@@ -17,7 +17,7 @@ const embedPath = path.join(
 
 async function main() {
   const pkg = JSON.parse(
-    fs.readFileSync(path.join(root, 'vendor/onnxruntime/js/web/package.json'), 'utf8'),
+    fs.readFileSync(path.join(root, 'node_modules/onnxruntime-web/package.json'), 'utf8'),
   );
   console.log(`onnxruntime-web version: ${pkg.version}`);
 

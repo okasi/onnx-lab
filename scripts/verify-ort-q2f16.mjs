@@ -18,7 +18,7 @@ async function main() {
   try {
     ort = await import('onnxruntime-node');
   } catch (e) {
-    console.error('onnxruntime-node not installed. Run: npm run build:ort && npm install');
+    console.error('onnxruntime-node not installed. Run: npm install (ORT 1.27.0) — see docs/ort-127-install.md');
     throw e;
   }
 

@@ -39,19 +39,19 @@
   "homepage": "https://github.com/okasi/onnx-lab#readme",
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
-    "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
+    "onnxruntime-common": "1.27.0",
+    "onnxruntime-node": "1.27.0",
+    "onnxruntime-web": "1.27.0"
   },
   "overrides": {
     "@huggingface/transformers": {
-      "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-      "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-      "onnxruntime-web": "file:vendor/onnxruntime/js/web"
+      "onnxruntime-common": "1.27.0",
+      "onnxruntime-node": "1.27.0",
+      "onnxruntime-web": "1.27.0"
     },
-    "onnxruntime-common": "file:vendor/onnxruntime/js/common",
-    "onnxruntime-node": "file:vendor/onnxruntime/js/node",
-    "onnxruntime-web": "file:vendor/onnxruntime/js/web"
+    "onnxruntime-common": "1.27.0",
+    "onnxruntime-node": "1.27.0",
+    "onnxruntime-web": "1.27.0"
   },
   "devDependencies": {
     "playwright-core": "^1.61.0",
