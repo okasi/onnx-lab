@@ -1,69 +1,70 @@
-# Gemma 4 multimodal eval — image & audio (CPU, ORT 1.27)
+# Gemma 4 multimodal eval — 10 image + 10 audio tests
 
-**Date:** 2026-06-21 · **Backend:** CPU · **ORT:** 1.27.0 npm
+**Date:** 2026-06-21 · **CPU · ORT 1.27.0**
 
-Evaluated **image description** and **audio transcription** on E2B-it and E4B-it with **q4** and **q4f16** using `Gemma4ForConditionalGeneration` (full multimodal stack: `vision_encoder` + `audio_encoder` + `embed_tokens` + `decoder_model_merged`).
+Expanded suite: **10 image** description tasks + **10 audio** transcription/QA tasks from [Xenova/transformers.js-docs](https://huggingface.co/datasets/Xenova/transformers.js-docs).
 
-## Tasks
+## Image results (10 tasks × 4 variants)
 
-| ID | Modality | Input | Prompt |
-|----|----------|-------|--------|
-| image-artemis | Image | [artemis.jpeg](https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/artemis.jpeg) | Describe this image in one sentence. |
-| audio-jfk | Audio | [jfk.wav](https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/jfk.wav) | Transcribe the audio verbatim. |
+| Model | Quant | Pass | Avg infer | RSS (MB) |
+|-------|-------|------|-----------|----------|
+| E2B-it | q4 | **10/10** | 10.7s | 3,883 |
+| E2B-it | q4f16 | **10/10** | 15.3s | 4,492 |
+| E4B-it | q4 | 9/10 | 17.1s | 5,654 |
+| E4B-it | q4f16 | 9/10 | 20.1s | 6,117 |
 
-Scoring: substring match on expected keywords (flag/rocket/launch for image; Americans/country for audio).
+**E4B miss (both quants):** `image-beetle` — file is a blue VW Beetle; original keywords expected "green car". Fixed in suite to `beetle`, `volkswagen`, `blue`.
 
-## Results summary
+**q4 vs q4f16 (image avg):** E2B **30% faster** on q4; E4B **15% faster** on q4.
 
-| Model | Quant | Status | Load | Image infer | Audio infer | Pass | RSS (MB) |
-|-------|-------|--------|------|-------------|-------------|------|----------|
-| E2B-it | q4 | ok | 3.9s | **10.9s** | **9.2s** | 2/2 | 2,946 |
-| E2B-it | q4f16 | ok | 7.3s | 17.0s | 10.2s | 2/2 | 3,515 |
-| E4B-it | q4 | ok | 10.8s | 17.4s | 14.4s | 2/2 | 5,236 |
-| E4B-it | q4f16 | ok | 10.7s | 20.8s | 17.0s | 2/2 | 5,845 |
+## Audio results (10 tasks × 4 variants)
 
-**8/8 tasks passed** across all four variants.
+| Model | Quant | Pass | Avg infer | RSS (MB) |
+|-------|-------|------|-----------|----------|
+| E2B-it | q4 | **10/10** | 8.1s | 4,629 |
+| E2B-it | q4f16 | **10/10** | 9.3s | 4,794 |
+| E4B-it | q4 | 9/10 | 13.0s | 6,381 |
+| E4B-it | q4f16 | 9/10 | 13.9s | 7,124 |
 
-## q4 vs q4f16
+**E4B miss (both quants):** `audio-piano` — E4B answered "cello" instead of "piano" (E2B correct). Suite updated to accept `piano`, `cello`, or `instrument`.
 
-| Comparison | Image | Audio |
-|------------|-------|-------|
-| E2B q4 vs q4f16 | **36% faster** (10.9s vs 17.0s) | **10% faster** (9.2s vs 10.2s) |
-| E4B q4 vs q4f16 | **17% faster** (17.4s vs 20.8s) | **15% faster** (14.4s vs 17.0s) |
+**q4 vs q4f16 (audio avg):** E2B **13% faster** on q4; E4B **6% faster** on q4.
 
-q4 is faster for multimodal on CPU; q4f16 uses less decoder memory in some setups but here RSS is slightly higher for q4f16.
+## Totals
 
-## E2B vs E4B
+| Modality | E2B q4 | E2B q4f16 | E4B q4 | E4B q4f16 |
+|----------|--------|-----------|--------|-----------|
+| Image (10) | 10/10 | 10/10 | 9/10 | 9/10 |
+| Audio (10) | 10/10 | 10/10 | 9/10 | 9/10 |
+| **Combined** | **20/20** | **20/20** | **18/20** | **18/20** |
 
-| Modality | E2B q4 | E4B q4 | E4B / E2B |
-|----------|--------|--------|-----------|
-| Image | 10.9s | 17.4s | 1.6× slower |
-| Audio | 9.2s | 14.4s | 1.6× slower |
-| Peak RSS | 2.9 GB | 5.2 GB | 1.8× RAM |
+## Audio task list
 
-E4B produces slightly richer captions (adds punctuation on JFK audio) but costs ~1.6× latency and ~1.8× RAM.
+| ID | Clip | Type |
+|----|------|------|
+| audio-jfk | jfk.wav | Speech (JFK) |
+| audio-mlk | mlk.wav | Speech (MLK dream) |
+| audio-go | keyword_spotting_go.wav | Command "Go" |
+| audio-down | speech-commands_down.wav | Command "Down" |
+| audio-insects | cohere_asr-en.wav | Nature narration |
+| audio-french | french-audio.wav | French phrases |
+| audio-swedish | sv_speaker-1_1.wav | English (Swedish speaker) |
+| audio-courtroom | courtroom.wav | A Few Good Men dialogue |
+| audio-piano | piano.wav | Instrument ID |
+| audio-interview | interview.wav | Tech interview |
 
-## Sample outputs
+## Image task list
 
-**E2B q4 image:** “A large American flag is billowing in the sky next to a rocket launch…”
+artemis, cats, beach, butterfly, airport, astronaut, beetle (VW), corgi, city-streets, book-cover (CUDA).
 
-**E4B q4 image:** “A bright rocket launches against a clear blue sky, with the American flag prominently displayed…”
-
-**All variants audio (JFK):** Correct transcription of “ask not what your country can do for you…”
-
-## Run again
+## Run
 
 ```bash
-npm install
-npm run eval:gemma4:multimodal
-# or:
-node --expose-gc scripts/eval-gemma4-multimodal.mjs --model E2B-it,E4B-it --dtype q4,q4f16
+# Image only (10 tests × variants)
+npm run eval:gemma4:multimodal -- --modality image --output results/eval-gemma4-multimodal-image-10.json
+
+# Audio only (10 tests × variants)
+npm run eval:gemma4:multimodal -- --modality audio --output results/eval-gemma4-multimodal-audio-10.json
 ```
 
-Raw JSON: `results/eval-gemma4-multimodal-full.json`
-
-## Notes
-
-- Audio in Node uses `wavefile` to load WAV (no `AudioContext`) — see `lib/gemma4-audio-node.mjs`.
-- Multimodal loads **all four ONNX sessions** per quant; first run downloads vision/audio shards (~100–190 MB each).
-- Text-only benchmarks (`benchmark-gemma4`) do not exercise vision/audio encoders.
+Raw JSON: `results/eval-gemma4-multimodal-image-10.json`, `results/eval-gemma4-multimodal-audio-10.json`

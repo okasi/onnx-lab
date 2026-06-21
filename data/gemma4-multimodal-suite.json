@@ -50,7 +50,7 @@
       "media_file": "beetle.png",
       "prompt": "Describe this image in one sentence.",
       "max_new_tokens": 48,
-      "expect_substrings": ["car", "green", "street", "parked"]
+      "expect_substrings": ["beetle", "volkswagen", "parked", "blue"]
     },
     {
       "id": "image-corgi",
