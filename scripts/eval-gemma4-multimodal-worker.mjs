@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { findGemma4Model } from '../config/gemma4-models.mjs';
 import { MemoryMonitor, classifyGemma4Error, round } from '../lib/gemma4-helpers.mjs';
 import { loadGemma4Multimodal, runGemma4MultimodalTask } from '../lib/gemma4-multimodal-runtime.mjs';
+import { loadMultimodalTasks } from '../lib/gemma4-multimodal-suite.mjs';
 import { scoreMultimodalOutput } from '../lib/gemma4-multimodal-scoring.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,7 @@ function parseArgs(argv) {
     const key = argv[i];
     if (key === '--model-slug') args.modelSlug = argv[++i];
     else if (key === '--dtype') args.dtype = argv[++i];
+    else if (key === '--modality') args.modality = argv[++i];
     else if (key === '--result-file') args.resultFile = argv[++i];
   }
   return args;
@@ -30,11 +32,13 @@ async function main() {
   const suite = JSON.parse(
     await fs.readFile(path.join(root, 'data', 'gemma4-multimodal-suite.json'), 'utf8'),
   );
+  const tasks = loadMultimodalTasks(suite, args.modality ?? null);
 
   const result = {
     model_slug: model?.slug ?? args.modelSlug,
     model_id: model?.id ?? null,
     dtype: args.dtype,
+    modality: args.modality ?? 'all',
     backend: 'cpu',
     status: 'pending',
     load_time_ms: null,
@@ -63,7 +67,7 @@ async function main() {
 
     if (global.gc) global.gc();
 
-    for (const task of suite.tasks) {
+    for (const task of tasks) {
       const taskResult = {
         id: task.id,
         modality: task.modality,
