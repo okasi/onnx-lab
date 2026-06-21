@@ -61,7 +61,7 @@ npm run probe:gemma-quants   # CPU + WebGPU quant matrix
 npm run probe:gemma4:quick   # Gemma 4 smoke: E2B q4 × 4 backends
 npm run probe:gemma4:hard    # WebGPU multi-strategy retry
 npm run benchmark:gemma4:quick  # E2B q4+q8 cpu+webgpu, 3 prompts
-npm run benchmark:gemma4     # full LLM matrix (multi-GB downloads)
+npm run eval:gemma4:multimodal     # image + audio on E2B/E4B q4/q4f16 (CPU)
 npm run leaderboard:gemma4   # GEMMA4_LEADERBOARD.md from results/
 npm run leaderboard          # regenerate LEADERBOARD.md from results/
 ```
