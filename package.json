@@ -24,7 +24,8 @@
     "build:ort:web": "bash scripts/build-ort-web.sh",
     "build:ort:all": "bash scripts/build-ort.sh && bash scripts/build-ort-web.sh",
     "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs",
-    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs"
+    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs",
+    "eval:gemma4:multimodal": "node --expose-gc scripts/eval-gemma4-multimodal.mjs"
   },
   "repository": {
     "type": "git",
@@ -41,7 +42,8 @@
     "@huggingface/transformers": "^4.2.0",
     "onnxruntime-common": "1.27.0",
     "onnxruntime-node": "1.27.0",
-    "onnxruntime-web": "1.27.0"
+    "onnxruntime-web": "1.27.0",
+    "wavefile": "^11.0.0"
   },
   "overrides": {
     "@huggingface/transformers": {

@@ -1,0 +1,149 @@
+{
+  "version": 2,
+  "description": "Gemma 4 multimodal eval — 10 image + 10 audio tasks (Xenova/transformers.js-docs assets).",
+  "base_url": "https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/",
+  "image_tasks": [
+    {
+      "id": "image-artemis",
+      "media_file": "artemis.jpeg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["flag", "rocket", "launch", "sky"]
+    },
+    {
+      "id": "image-cats",
+      "media_file": "cats.jpg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["cat", "pink"]
+    },
+    {
+      "id": "image-beach",
+      "media_file": "beach.png",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["beach", "sand", "hat", "sunglasses"]
+    },
+    {
+      "id": "image-butterfly",
+      "media_file": "butterfly.jpg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["butterfly", "wing", "yellow", "black"]
+    },
+    {
+      "id": "image-airport",
+      "media_file": "airport.jpg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["airport", "airplane", "plane"]
+    },
+    {
+      "id": "image-astronaut",
+      "media_file": "astronaut.png",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["astronaut", "space", "suit", "flag"]
+    },
+    {
+      "id": "image-beetle",
+      "media_file": "beetle.png",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["beetle", "volkswagen", "parked", "blue"]
+    },
+    {
+      "id": "image-corgi",
+      "media_file": "corgi.jpg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["dog", "fur", "grass"]
+    },
+    {
+      "id": "image-city",
+      "media_file": "city-streets.jpg",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["street", "car", "city", "cycle"]
+    },
+    {
+      "id": "image-book",
+      "media_file": "book-cover.png",
+      "prompt": "Describe this image in one sentence.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["book", "cuda", "computing", "cover"]
+    }
+  ],
+  "audio_tasks": [
+    {
+      "id": "audio-jfk",
+      "media_file": "jfk.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 96,
+      "expect_substrings": ["americans", "country", "ask not"]
+    },
+    {
+      "id": "audio-mlk",
+      "media_file": "mlk.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 96,
+      "expect_substrings": ["dream", "nation", "creed"]
+    },
+    {
+      "id": "audio-go",
+      "media_file": "keyword_spotting_go.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 16,
+      "expect_substrings": ["go"]
+    },
+    {
+      "id": "audio-down",
+      "media_file": "speech-commands_down.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 16,
+      "expect_substrings": ["down"]
+    },
+    {
+      "id": "audio-insects",
+      "media_file": "cohere_asr-en.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 96,
+      "expect_substrings": ["insect", "fly", "animals"]
+    },
+    {
+      "id": "audio-french",
+      "media_file": "french-audio.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["aime", "adore", "déteste"]
+    },
+    {
+      "id": "audio-swedish",
+      "media_file": "sv_speaker-1_1.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 48,
+      "expect_substrings": ["legislature", "members"]
+    },
+    {
+      "id": "audio-courtroom",
+      "media_file": "courtroom.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 96,
+      "expect_substrings": ["jessup", "code red", "answers"]
+    },
+    {
+      "id": "audio-piano",
+      "media_file": "piano.wav",
+      "prompt": "What musical instrument is playing?",
+      "max_new_tokens": 24,
+      "expect_substrings": ["piano"]
+    },
+    {
+      "id": "audio-interview",
+      "media_file": "interview.wav",
+      "prompt": "Transcribe the audio verbatim.",
+      "max_new_tokens": 96,
+      "expect_substrings": ["open source", "model", "software"]
+    }
+  ]
+}

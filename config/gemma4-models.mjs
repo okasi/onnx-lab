@@ -9,7 +9,7 @@ export const GEMMA4_MODELS = [
     name: 'Gemma 4 E2B IT',
     url: 'https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX/tree/main/onnx',
     quants: ['fp32', 'fp16', 'q4', 'q4f16', 'q8'],
-    note: '2B text decoder; q8 uses _quantized ONNX suffix.',
+    note: '2B multimodal (text+image+audio); q8 uses _quantized ONNX suffix.',
   },
   {
     id: 'onnx-community/gemma-4-E4B-it-ONNX',
@@ -17,7 +17,7 @@ export const GEMMA4_MODELS = [
     name: 'Gemma 4 E4B IT',
     url: 'https://huggingface.co/onnx-community/gemma-4-E4B-it-ONNX/tree/main/onnx',
     quants: ['fp32', 'fp16', 'q4', 'q4f16', 'q8'],
-    note: '4B text decoder; large downloads and high RAM on WASM.',
+    note: '4B multimodal (text+image+audio); large downloads and high RAM.',
   },
   {
     id: 'onnx-community/gemma-4-E2B-it-qat-mobile-ONNX',
