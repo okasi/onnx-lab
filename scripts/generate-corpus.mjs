@@ -1,0 +1,328 @@
+#!/usr/bin/env node
+/**
+ * Generates Swedish/Turkish benchmark corpus for embedding evaluation.
+ * Topics: mortgage, legal, medical — at least 50 long documents.
+ */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const outPath = path.join(__dirname, '..', 'data', 'benchmark-corpus.json');
+
+const TOPICS = ['mortgage', 'legal', 'medical'];
+
+const CORPUS = {
+  mortgage: {
+    sv: [
+      {
+        title: 'Bolånemarginal och rörlig ränta',
+        text: `När du tecknar ett bolån i Sverige erbjuder banken antingen rörlig ränta eller bunden ränta. Den rörliga räntan följer marknadsräntan och består av referensräntan plus en individuell bolånemarginal som banken sätter utifrån din kreditvärdighet, belåningsgrad och relation till banken. Finansinspektionen ställer krav på amortering när belåningsgraden överstiger 50 procent, vilket innebär att låntagare måste amortera minst en procent av skulden per år upp till 70 procent belåning och två procent därefter. Vid en stresstestbedömning väger banken in hur ditt hushåll klarar en räntehöjning på flera procentenheter. Många låntagare väljer att sätta av till ett buffertsparande parallellt med amortering för att kunna hantera oförutsedda utgifter utan att belåna konsumtion. Det är viktigt att läsa det europeiska standardiserade informationsbladet (ESIS) noggrant innan bindande erbjudande accepteras, eftersom det redovisar effektiv ränta, uppläggningsavgift och villkor för förtida inlösen.`,
+      },
+      {
+        title: 'Pantbrev och lagfart vid bostadsköp',
+        text: `Vid köp av fastighet eller bostadsrätt tillkommer kostnader utöver själva köpeskillingen. Pantbrev används som säkerhet för bolånet och utfärdas av Lantmäteriet; kostnaden beror på hur många pantbrev som redan finns i fastigheten och om nya behöver tas ut. Lagfart är den juridiska registreringen som visar att du äger fastigheten och debiteras som en procentandel av köpeskillingen. Bostadsrätter omfattas inte av lagfart på samma sätt, men föreningen kan ha överlåtelseavgift och pantsättningsavgift enligt stadgarna. Banken kräver normalt att pantbrev och försäkring är ordnade innan utbetalning sker på tillträdesdagen. Köpekontraktet bör tydligt reglera handpenning, tillträde, dolda fel och eventuell besiktning. Om säljaren har kvar ett bolån löser mäklaren ofta skulden genom att köpeskillingen betalas till banken med pantbrev som säkerhet. Rådgivning kring skatteavdrag för räntekostnader och eventuell vinstbeskattning vid framtida försäljning bör tas med en skatterådgivare.`,
+      },
+      {
+        title: 'Belåningsgrad och amorteringskrav',
+        text: `Belåningsgraden, ofta kallad loan-to-value, är förhållandet mellan bolåneskulden och marknadsvärdet på bostaden. Ju högre belåningsgrad desto större risk för både låntagare och bank, vilket återspeglas i högre marginal och strängare amorteringskrav. Finansinspektionens amorteringskrav kombineras ibland med bankernas egna krav vid hög skuldkvot i förhållande till bruttoinkomst. Hushåll med låg marginal kan behöva förlänga amorteringstiden eller söka med medsökande för att uppfylla kreditprövningen. Vid värdering av bostad använder banken antingen mäklarens värdering, egen värdering eller ett index beroende på belopp. Om marknadspriset faller kan belåningsgraden stiga utan att skulden minskat, vilket kan utlösa krav på ytterligare säkerheter i extrema fall. Planering inför ränteavdrag och förmögenhetsbeskattning av bostaden skiljer sig mellan villa och bostadsrätt.`,
+      },
+      {
+        title: 'Byte av bank och omförhandling av bolån',
+        text: `Konsumenter har rätt att flytta bolån mellan banker när bindningstid löpt ut eller vid rörlig ränta utan bindning. Processen innebär att ny bank kreditprövar dig, värderar bostaden och erbjuder villkor. Den nya banken löser vanligtvis den gamla skulden på tillträdesdagen och pantbrev flyttas eller nya upprättas. Det är klokt att jämföra effektiv ränta inklusive avgifter och att förhandla om listränta och rabatt. Vissa banker erbjuder rabatt om du flyttar lön, pension eller försäkringar. Tänk på att uppsägningstid och räntebindning på befintligt lån kan medföra räntedifferensersättning om du bryter avtalet i förtid. Digitala tjänster har förenklat ansökan men underliggande kreditregler är desamma. Dokumentation om inkomst, anställning och eventuella andra lån måste uppdateras.`,
+      },
+      {
+        title: 'Bostadslån för fritidshus och andrahandsbelåning',
+        text: `Belåning av fritidshus regleras ofta striktare än permanentbostad. Banker kräver högre kontantinsats och kan begränsa maximal belåningsgrad. Räntan kan vara något högre på grund av säsongsvariation i värdering och likviditet på marknaden. Om du redan har bolån på permanentbostaden vägs total skuldkvot starkt i kreditbeslutet. Andrahandsbelåning innebär att du tar ett ytterligare lån med samma bostad som säkerhet, vilket ökar den sammanlagda belåningsgraden. Användningsområdet för andrahandsbelåning granskas; ren konsumtion godtas sällan. Försäkringsskydd och brandskyddskrav kan skilja sig för fritidshus. Vid arv eller gåva av fastighet kan generationsskifte kombineras med övertagande av befintliga lån efter särskild prövning.`,
+      },
+      {
+        title: 'Ränteavdrag och skatt vid bostadsförsäljning',
+        text: `Räntekostnader på bolån är avdragsgilla i inkomstslaget kapital upp till gällande tak och regler om underskott mot tjänst. Skattereduktionen påverkar den faktiska månadskostnaden och bör räknas in i hushållsbudgeten. Vid försäljning av privatbostad tillämpas regler om uppskov eller kapitalvinstbeskattning beroende på om ersättningsbostad köps. För bostadsrätter är innerfond och föreningens ekonomi viktiga vid värdering inför försäljning. Mäklarens provision och juridisk hjälp vid tillträde är avdragsgilla i vissa sammanhang som försäljningskostnad. Planera gärna i god tid om du ska sälja och köpa samtidigt för att undvika dubbla boendekostnader utan bridge-lån.`,
+      },
+      {
+        title: 'Borgensåtagande och medsökande',
+        text: `Unga låntagare eller personer med kort anställning kan behöva medsökande eller borgensman för att uppnå önskat lånebelopp. Medsökande blir solidariskt betalningsansvarig för hela skulden, vilket påverkar även dennes egen kreditvärdighet och framtida låneutrymme. Borgensåtagande är ett separat avtal där borgensmannen inträder om huvudgäldenären inte betalar. Banken ska ge tydlig information enligt konsumentkreditlagen innan borgen undertecknas. Det är väsentligt att dokumentera interna överenskommelser mellan familjemedlemmar för att undvika oklarheter vid separation eller arv. Samboegendom och äktenskapsförord kan påverka vem som äger bostaden och därmed vem som kan pantsätta.`,
+      },
+      {
+        title: 'Digital bolåneansökan och AI-baserad kreditprövning',
+        text: `Allt fler banker använder automatiserade beslutssystem vid första linjens kreditprövning. Uppgifter hämtas via kreditupplysning, inkomstdata och interna betalningshistorik. En automatisk avslag kan överklagas och prövas manuellt om kunden lämnar kompletterande information. Personuppgiftsbiträdesavtal reglerar hur externa leverantörer får behandla data. Konsumenten har rätt till information om automatiserat beslut enligt GDPR artikel 22 när beslutet har rättslig verkan. Vid bolåneansökan online signeras ofta fullmakt för kreditupplysning digitalt med BankID. Säkerställ att du förstår skillnaden mellan preliminärt besked och bindande lånelöfte inför budgivning.`,
+      },
+      {
+        title: 'Gröna bolån och energieffektivisering',
+        text: `Flera banker marknadsför gröna bolån med ränterabatt om bostaden uppfyller energikrav eller om lånet finansierar energieffektivisering. Kraven varierar mellan institut men kan omfatta energideklaration, installation av värmepump eller solceller. Rabatten är ofta tidsbegränsad och förutsätter dokumentation efter genomfört arbete. Kombinationen av ROT-avdrag och bankfinansiering kräver korrekt fakturering och kontrollbalans. Vid värdering kan energiklass påverka marknadsvärde på sikt. Hållbara finansieringsprodukter rapporteras under EU:s taxonomi och CSRD-krav för större banker, vilket ökar transparensen för konsumenter som prioriterar klimatpåverkan i sina ekonomiska val.`,
+      },
+    ],
+    tr: [
+      {
+        title: 'Konut kredisi faiz oranı ve değişken faiz',
+        text: `Türkiye'de konut kredisi başvururusunda bankalar sabit veya değişken faizli ürünler sunar. Değişken faizli kredilerde taksitler, referans faiz ve bankanın marjına bağlı olarak dönemsel olarak güncellenir. Bankacılık Düzenleme ve Denetleme Kurumu, tüketicinin geri ödeme gücünü değerlendirmek için gelir belgesi, kredi notu ve taşınmazın ekspertiz değerini esas alır. Konut kredisinde genellikle taşınmaz üzerine ipotek tesis edilir ve tapu müdürlüğünde şerh düşülür. Kredi kullanımından önce sigorta poliçesi, ekspertiz raporu ve satış vaadi sözleşmesi tamamlanmalıdır. Erken kapama komisyonu ve dosya masrafları yıllık maliyet oranına dahil edilerek müşteriye açıklanır. Tüketicinin, ödeme planını enflasyon ve gelir artışı senaryolarına göre stres test etmesi önerilir.`,
+      },
+      {
+        title: 'İpotek tesis ve tapu işlemleri',
+        text: `Konut alımında ipotek, bankanın alacak hakkını güvence altına alan teminat türüdür. İpotek derecesi önceki tesis edilmiş ipoteklere göre belirlenir ve tesis masrafı ile harçlar tapu işleminde tahsil edilir. Satış işlemi sırasında belediye rayiç bedeli ve emlak vergisi beyanı kontrol edilir. Kat mülkiyeti kurulu binalarda yönetim planı ve aidat borçları satıcı tarafından kapatılmalıdır. Tapu iptal ve tescil işlemleri genellikle banka avukatı veya güvenilir emlak danışmanı koordinasyonunda yürütülür. Alıcının kimlik, vergi levhası ve medeni durum belgeleri eksiksiz sunulmalıdır. Şerhli tapu durumunda kredinin kullandırılması riskli olabilir; bu nedenle tapu kaydı ve imar durumu mutlaka incelenmelidir.`,
+      },
+      {
+        title: 'LTV oranı ve peşinat gereklilikleri',
+        text: `Kredi/değer oranı, konutun ekspertiz değerine göre kullanılabilecek azami kredi tutarını belirler. Düşük peşinat yüksek LTV demektir ve banka marjını artırabilir. Merkez Bankası ve BDDK düzenlemeleri belirli dönemlerde konut kredisi büyümesine sınırlar getirebilir. İkinci konut veya yatırım amaçlı alımlarda daha yüksek peşinat istenebilir. Ekspertiz değeri ile satış fiyatı arasındaki fark bankanın risk değerlendirmesini etkiler. Kredi vadesi uzadıkça toplam faiz maliyeti artar; ancak aylık taksit düşer. Gelirinin yüksek oranda taksitlere gitmesi durumunda banka ek teminat veya kefil talep edebilir.`,
+      },
+      {
+        title: 'Banka değişikliği ve kredi yeniden yapılandırma',
+        text: `Mevcut konut kredisi başka bir bankaya aktarılabilir veya faiz/maturity yeniden yapılandırılabilir. Aktarım sürecinde yeni banka kredi tahsis ücreti alabilir; ancak düşük faiz uzun vadede tasarruf sağlayabilir. Erken ödeme tazminatı mevzuata göre sınırlıdır ve müşteriye yazılı bildirilir. Yeniden yapılandırma talepleri, gelir kaybı veya geçici ödeme güçlüğü durumlarında değerlendirilir. Kredi kayıt sistemi ve merkezi risk veritabanındaki geçmiş ödeme davranışı yeni başvuruda dikkate alınır. Dijital kanallardan başvuruda bile sözleşme hükümleri ve ödeme planı okunmalıdır.`,
+      },
+      {
+        title: 'Yazlık konut ve ikinci ipotek',
+        text: `Yazlık veya ticari amaç taşımayan ikinci konut kredilerinde bankalar teminat değerlemesini daha muhafazakar yapar. İkinci ipotek ile mevcut konut üzerinden ek finansman sağlanabilir; ancak toplam LTV sınırı aşılamaz. Kullanım amacı deklarasyonu denetlenir; tüketim kredisi gibi kullanımlar konut kredisi koşullarına aykırı olabilir. Deprem sigortası DASK zorunluluğu tüm konut kredilerinde aranır. Yangın ve ek teminat poliçeleri bankanın lehine dain-i mürtehin şerhi ile düzenlenir.`,
+      },
+      {
+        title: 'Konut satışında vergi ve harçlar',
+        text: `Gayrimenkul satışında tapu harcı, emlak vergisi ve değer artış kazancı vergisi gündeme gelebilir. Beş yıllık süre ve mesken istisnası şartları taşınırsa vergi avantajı sağlanabilir. Kira geliri elde edenler için ayrı beyan yükümlülükleri doğar. Satış öncesi yapı kullanma izni ve iskan belgesi alıcı tarafından kontrol edilmelidir. Kredi kapanışı ile ipotek fekki işlemleri eş zamanlı planlanmalıdır.`,
+      },
+      {
+        title: 'Kefil ve birlikte borçlu',
+        text: `Geliri yetersiz görülen başvurularda kefil veya eşin birlikte borçlu olması istenebilir. Kefil, asıl borçlu ödemediğinde tüm borçtan sorumlu olur. 6502 sayılı Tüketicinin Korunması Hakkında Kanun kapsamında ön bilgilendirme formu ve sözleşme örneği verilmelidir. Kefalet sözleşmesinde azami miktar ve süre açıkça yazılmalıdır. Aile içi anlaşmazlıkları önlemek için iç hukuki düzenlemeler yapılması önerilir.`,
+      },
+      {
+        title: 'Dijital kredi başvurusu ve otomatik skorlama',
+        text: `Bankalar kredi başvurularında otomatik skorlama modelleri kullanır. KKB kayıtları, maaş bordrosu ve sosyal güvenlik verileri değerlendirmeye girer. KVKK kapsamında açık rıza ve aydınlatma metni sunulması zorunludur. Otomatik red durumunda manuel inceleme talep hakkı saklıdır. Dijital imza ve uzaktan kimlik doğrulama süreçleri güvenli kanallar üzerinden yürütülmelidir.`,
+      },
+      {
+        title: 'Yeşil konut kredisi ve enerji verimliliği',
+        text: `Enerji kimlik belgesi yüksek sınıfta olan konutlara veya ısı yalıtımı projelerine özel faiz indirimi sunan ürünler yaygınlaşmaktadır. Proje tamamlandıktan sonra belgelendirme bankaya ibraz edilir. Çevresel sürdürülebilirlik raporlaması bankaların yeşil tahvil ihracı ile ilişkilidir. Tüketici, indirim süresi ve şart değişikliği maddelerini sözleşmede kontrol etmelidir.`,
+      },
+    ],
+  },
+  legal: {
+    sv: [
+      {
+        title: 'Konsumentkreditlagen och ångerrätt',
+        text: `Konsumentkreditlagen (2010:1846) reglerar kreditavtal mellan näringsidkare och konsumenter i Sverige. Lagen kräver att kreditgivaren lämnar standardiserad europeisk konsumentkreditinformation innan avtal ingås. Konsumenten har normalt fjorton dagars ångerrätt vid distansavtal och vissa krediter, under förutsättning att lånet inte utnyttjats fullt ut. Vid räntehöjning på rörliga krediter gäller särskilda informationskrav. Kreditgivaren måste bedöma konsumentens kreditvärdighet innan beviljande; bristande prövning kan leda till tillsynsåtgärder från Konsumentverket eller Finansinspektionen. Avtalsvillkor som är oskäliga enligt avtalslagen kan jämkas av domstol. Konsumenten kan vända sig till Allmänna reklamationsnämnden vid tvist om finansiella tjänster under vissa villkor.`,
+      },
+      {
+        title: 'GDPR och personuppgifter i juridiska processer',
+        text: `Dataskyddsförordningen (GDPR) styr behandling av personuppgifter inom EU och EES. Personuppgiftsansvarig måste ha rättslig grund, ofta avtal eller berättigat intresse, för att behandla uppgifter. Den registrerade har rätt till tillgång, rättelse, radering och dataportabilitet under definierade förutsättningar. Integritetsskyddsmyndigheten (IMY) utövar tillsyn och kan döma ut sanktionsavgifter. Vid juridisk process kan personuppgifter behandlas för rättsligt ändamål, men sekretess och proportionalitet måste beaktas. Personuppgiftsbiträdesavtal krävs när extern leverantör behandlar data för den ansvariges räkning. Överföring till tredjeland kräver lämpliga skyddsåtgärder som standardavtalsklausuler.`,
+      },
+      {
+        title: 'Anställningsavtal och uppsägning',
+        text: `Lagen om anställningsskydd (LAS) reglerar formkrav, provanställning och saklig grund för uppsägning i Sverige. Arbetsgivaren ska informera om väsentliga arbetsvillkor skriftligt senast en månad efter anställningens början. Uppsägningstid beror på anställningstid och kollektivavtal. Vid tvist kan arbetstagaren yrka skadestånd och ogiltigförklaring hos Arbetsdomstolen eller tingsrätt. Diskriminering förbjuds enligt diskrimineringslagen och kan ge rätt till ekonomisk kompensation. Non-compete-klausuler är ogiltiga om de inte uppfyller strikta krav i anställningsskyddslagen. Vid arbetsbrist krävs omplaceringutredning innan uppsägning.`,
+      },
+      {
+        title: 'Testamente och arvskifte',
+        text: `I Sverige regleras arv huvudsakligen av ärvdabalken. Bröstarvingar har laglott som inte helt kan testamenteras bort. Testamente ska undertecknas enligt formkrav för att vara giltigt. Efter dödsfall inleds bouppteckning och arvskifte; boutredningsman kan förordnas vid oenighet. Sambo har viss rätt till bodelning enligt sambolagen om de haft gemensamt hushåll. Gåvoskatt har avskaffats men gåva kan påverka laglottberäkning. Internationellt arv kan falla under EU:s arvsförordning beroende på hemvist och tillgångarnas beskaffenhet.`,
+      },
+      {
+        title: 'Hyresrätt och besittningsskydd',
+        text: `Hyreslagen ger hyresgäster starkt besittningsskydd i Sverige. Uppsägning från hyresvärd kräver saklig grund, till exempel eget behov eller störningar. Hyresnämnden prövar tvister om hyra och avtalsvillkor. Indexklausul och bruksvärde system används för hyresjustering. Andrahandsuthyrning kräver ofta hyresvärdens godkännande. Vid renovering och ombyggnad gäller särskilda regler om tillfällig ersättningsbostad. Diskriminering vid bostadstilldelning kan anmälas till Diskrimineringsombudsmannen.`,
+      },
+      {
+        title: 'Skilsmässa och vårdnad',
+        text: `Äktenskapsskillnad kan ansökas gemensamt eller ensidigt hos tingsrätten efter betänketid. Barns bästa är utgångspunkt vid vårdnad, boende och umgänge enligt föräldrabalken. Familjerätten uppmuntrar medling innan tvist. Underhållsbidrag beräknas utifrån barnets behov och föräldrarnas förmåga. Bodelning vid skilsmämma ska normalt göras inom ett år. Våld i nära relationer kan medföra kontaktförbud och särskilda skyddsåtgärder via Kronofogden.`,
+      },
+      {
+        title: 'Näringsförbud och konkurs',
+        text: `Konkurs inleds vid domstol när gäldenär är på obestånd. Konkursförvaltaren inventerar tillgångar och betalar ut till borgenärer enligt förmånsrätt. Näringsförbud kan meddelas personer som grovt misskött företagsekonomi. Revisors ansvar och bokföringslagen ställer krav på dokumentation. Skatteverket kan lämna uppgifter till brottsbekämpande myndigheter vid misstanke om skattebrott. Ackord och företagsrekonstruktion är alternativ till ren konkurs.`,
+      },
+      {
+        title: 'Offentlig upphandling',
+        text: `LOU styr hur stat, kommuner och regioner får köpa varor och tjänster. Principerna om likabehandling, transparens och proportionalitet är centrala. Anbudsgivare som anser sig felaktigt uteslutna kan överpröva hos förvaltningsrätt. Sekretess kan gälla vissa anbudsuppgifter men insynskravet är starkt. Ramavtal och dynamiska inköpssystem används för återkommande behov. Miljö- och sociala kriterier får vägas in om de är kopplade till föremålet.`,
+      },
+      {
+        title: 'Brottmål och rättegång',
+        text: `I brottmål åtalar åklagaren på allmänhetens vägnar. Misstänkta har rätt till försvarare och att inte själv belasta sig. Bevisvärdering sker enligt fri bevisprövning men tvistemålsregler om bevisbörda gäller inte fullt ut. Påföljd kan vara böter, fängelse eller samhällstjänst beroende på brottets art. Hovrätten prövar överklaganden av tingsrättens domar. Europakonventionen om mänskliga rättigheter ger rätt till rättvis rättegång inom skälig tid.`,
+      },
+    ],
+    tr: [
+      {
+        title: 'Tüketici kredisi ve cayma hakkı',
+        text: `6502 sayılı Tüketicinin Korunması Hakkında Kanun, mesafeli sözleşmelerde ve finansal hizmetlerde bilgilendirme yükümlülüğü getirir. Kredi sözleşmesi öncesi ön bilgilendirme formu verilmelidir. Cayma hakkı süresi ve istisnaları ilgili yönetmeliklerle düzenlenir. Bankaların faiz, masraf ve komisyon artışları belirli bildirim sürelerine tabidir. Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri uyuşmazlık çözüm mercileridir. Haksız şart içeren sözleşme hükümleri yazılmamış sayılabilir.`,
+      },
+      {
+        title: 'KVKK ve kişisel verilerin korunması',
+        text: `6698 sayılı Kişisel Verilerin Korunması Kanunu, veri sorumlusunun aydınlatma yükümlülüğü ve hukuka uygunluk sebeplerini düzenler. Özel nitelikli kişisel veriler için açık rıza veya kanuni istisna aranır. Veri sahibi başvurusu üzerine erişim, düzeltme ve silme talepleri yanıtlanmalıdır. Kişisel Verileri Koruma Kurulu idari para cezası uygulayabilir. Veri işleyen sözleşmeleri ve yurt dışına aktarım için taahhütname veya yeterlilik kararı gerekir.`,
+      },
+      {
+        title: 'İş sözleşmesi ve fesih',
+        text: `4857 sayılı İş Kanunu, belirsiz süreli iş sözleşmelerinin feshinde geçerli sebep ve usul kuralları öngörür. Kıdem ve ihbar tazminatı hesaplamaları çalışma süresine bağlıdır. İşçi ve işveren sendikaları toplu iş sözleşmeleri ile ücret ve çalışma koşullarını belirleyebilir. İş kazası ve meslek hastalığında SGK prim borçlanması ve tazminat davaları gündeme gelir. Mobbing iddiaları iş mahkemelerinde ispat yükümlülüğü ile değerlendirilir.`,
+      },
+      {
+        title: 'Miras ve vasiyetname',
+        text: `4721 sayılı Türk Medeni Kanunu miras paylarını düzenler. Saklı paylı mirasçıların hakları vasiyetname ile tamamen ortadan kaldırılamaz. Vasiyetname resmi şekil şartlarına uygun düzenlenmelidir. Veraset ilamı ve mirasçılık belgesi tapu devri için gereklidir. Ölüme bağlı tasarruflar ve bağışlamalar veraset ve harç planlamasında incelenmelidir.`,
+      },
+      {
+        title: 'Kira hukuku ve tahliye',
+        text: `6098 sayılı Türk Borçlar Kanunu kira ilişkisini düzenler. Konut ve çatılı işyeri kiralarında temerrüt ve tahliye şartları özel hükümlere tabidir. Kira artış oranı tüketici fiyat endeksi ile sınırlandırılabilir. Kiracının güvencesi depozito mevzuata uygun tutulmalıdır. Tahliye taahhütnamesi belirli şekil şartlarına tabidir.`,
+      },
+      {
+        title: 'Boşanma ve velayet',
+        text: `Anlaşmalı ve çekişmeli boşanma davaları aile mahkemelerinde görülür. Çocuğun üstün yararı velayet kararında esas alınır. Nafaka, mal rejimi ve ziynet eşyası talepleri ayrı değerlendirilir. Koruma kararı ve 6284 sayılı Kanun kapsamında tedbirler uygulanabilir.`,
+      },
+      {
+        title: 'İcra ve iflas hukuku',
+        text: `İcra ve İflas Kanunu alacakların tahsili ve iflas süreçlerini düzenler. İflas erteleme ve konkordato projeleri yeniden yapılandırma imkânı sunar. İcra müdürlükleri haciz ve satış işlemlerini yürütür. Öncelikli alacaklar kanunda sıralanmıştır.`,
+      },
+      {
+        title: 'Kamu ihale mevzuatı',
+        text: `4734 sayılı Kamu İhale Kanunu, açık ihale ve belli istekliler arasında ihale usullerini belirler. İdari şartnamede teknik ve mali yeterlilik kriterleri eşit muamele ilkesine uygun olmalıdır. İtirazen şikâyet Kurul nezdinde değerlendirilir. Çevre ve sosyal kriterler ihale konusu ile bağlantılı olmalıdır.`,
+      },
+      {
+        title: 'Ceza yargılaması ve savunma hakkı',
+        text: `Ceza Muhakemesi Kanunu, şüpheli ve sanık haklarını güvence altına alır. Deliller hukuka uygun yöntemlerle elde edilmelidir. Tutuklama ölçülülük ilkesine tabidir. İstinaf ve temyiz kanun yolları ile karar denetlenir. Avrupa İnsan Hakları Sözleşmesi adil yargılanma hakkını güvence altına alır.`,
+      },
+    ],
+  },
+  medical: {
+    sv: [
+      {
+        title: 'Hypertoni och hyperlipidemi',
+        text: `Hypertoni definieras ofta som upprepade blodtrycksmätningar på 140/90 mmHg eller högre. Livsstilsåtgärder inkluderar saltreduktion, regelbunden fysisk aktivitet och viktnedgång. Farmakologisk behandling kan omfatta ACE-hämmare, ARB, kalciumantagonister eller tiaziddiuretika enligt nationella riktlinjer. Hyperlipidemi behandlas med statiner när totalrisk för kardiovaskulär sjukdom överstiger behandlingsgräns. Patienten ska informeras om muskelbiverkningar och behov av leverprov vid indikation. Kombinationsbehandling kräver uppföljning av njurfunktion och elektrolyter.`,
+      },
+      {
+        title: 'Typ 2-diabetes och HbA1c',
+        text: `Typ 2-diabetes kännetecknas av insulinresistens och progressiv beta-cellssvikt. Diagnos ställs vid fastande glukos, HbA1c eller oral glukostoleranstest enligt WHO-kriterier. Metformin är förstahandsval om inte kontraindicerat. Uppföljning av fotstatus, ögonbotten och mikroalbuminuri rekommenderas årligen. Hypoglykemi risk ökar med sulfonylurea och insulin. Patientutbildning om kolhydraträkning och fysisk aktivitet är central för egenvård.`,
+      },
+      {
+        title: 'Astma och KOL',
+        text: `Astma är en kronisk inflammatorisk luftvägssjukdom med variabel bronkialobstruktion. Behandling stegas enligt GINA med inhalationskortikosteroid och beta-2-agonist. KOL diagnostiseras spirometriskt med icke-fullt reversibel obstruktion. Rökstopp är den viktigaste interventionen. Långverkande bronkodilatatorer och pulmonell rehabilitering förbättrar symtom och livskvalitet. Exacerbationer kan kräva systemiska steroider och antibiotika vid misstänkt infektion.`,
+      },
+      {
+        title: 'Antibiotikaresistens och stewardship',
+        text: `Ökad antibiotikaresistens är ett globalt hot mot folkhälsan. Antibiotikastewardship innebär att välja korrekt preparat, dos och behandlingstid utifrån lokal resistensdata. Penicillinallergi ska dokumenteras noggrant; korsallergi med cephalosporiner är sällsynt men utvärderas individuellt. Urinodling rekommenderas vid komplicerad urinvägsinfektion. Prokalcitonin kan stödja beslut om att avsluta antibiotika vid luftvägsinfektion.`,
+      },
+      {
+        title: 'Stroke och TIA',
+        text: `Akut ischemisk stroke behandlas inom tidsfönster med trombolys eller trombektomi vid lämplig bilddiagnostik. Sekundärprevention omfattar antiplateletmedel, blodtryckssänkning och statin. Förmaksflimmer utreds med EKG och Holter; antikoagulation övervägs utifrån CHA2DS2-VASc. Transitorisk ischemisk attack (TIA) kräver snabb utredning på grund av hög risk för stroke. Rehabilitering med fysioterapi och logoped är viktig för funktionsåtergång.`,
+      },
+      {
+        title: 'Depression och ångest',
+        text: `Major depression diagnostiseras enligt DSM-5 med symtom som nedstämdhet, anhedoni och sömnstörning under minst två vecker. SSRI är ofta förstahandsval med uppföljning av suicidrisk. Kognitiv beteendeterapi har god evidens ensamt eller i kombination med läkemedel. Generaliserat ångestsyndrom kan behandlas med SSRI eller SNRI. Benzodiazepiner bör undvikas långvarigt på grund av beroenderisk.`,
+      },
+      {
+        title: 'Barnvaccination och immunitet',
+        text: `Det svenska barnvaccinationsprogrammet skyddar mot mässling, pneumokocker, HPV och flera andra smittor. Vaccinationstäckning övervakas regionalt. Biverkningar som feber och lokal reaktion är vanliga och oftast milda. Kontraindikationer inkluderar allvarlig allergi mot tidigare dos. Resenärer rådgörs om extra vaccination beroende på destination.`,
+      },
+      {
+        title: 'Njursvikt och dialys',
+        text: `Kronisk njursjukdom stadieindelas utifrån eGFR och albuminuri. Riskfaktorer inkluderar diabetes, hypertoni och nefrotoxiska läkemedel. ACE-hämmare eller ARB kan sakta progression vid albuminuri. Dialys initieras när eGFR är kritiskt låg och symtom uppstår. Transplantation utvärderas hos lämpliga kandidater. Diet med begränsat kalium och fosfor kan behövas.`,
+      },
+      {
+        title: 'Onkologi och immunterapi',
+        text: `Cancerdiagnos ställs histopatologiskt och stadieindelas enligt TNM. Behandling kan omfatta kirurgi, strålning, cytostatika och målinriktad terapi. Immunterapi med checkpointhämmare används vid flera tumörtyper men kräver övervakning av immunrelaterade biverkningar. Palliativ vård integreras tidigt för symtomlindring. Genetisk vägledning erbjuds vid ärftliga cancersyndrom.`,
+      },
+    ],
+    tr: [
+      {
+        title: 'Hipertansiyon ve dislipidemi',
+        text: `Hipertansiyon çoğu kılavuzda ofis ölçümünde 140/90 mmHg üzeri olarak tanımlanır. Yaşam tarzı değişiklikleri tuz kısıtlaması, egzersiz ve kilo kontrolünü içerir. İlk basamak tedavide ACE inhibitörü, ARB, kalsiyum kanal blokeri veya diüretik tercih edilebilir. Dislipidemide statin tedavisi kardiyovasküler risk skoruna göre planlanır. Kas ağrısı şikâyeti olan hastalarda CK kontrolü düşünülür. Kombine tedavide böbrek fonksiyonları izlenmelidir.`,
+      },
+      {
+        title: 'Tip 2 diyabet ve HbA1c',
+        text: `Tip 2 diyabet insülin direnci ve beta hücre disfonksiyonu ile seyreder. Tanı açlık plazma glukozu, HbA1c veya OGTT ile konur. Metformin ilk seçenektir. Yıllık ayak muayenesi, retinal tarama ve mikroalbuminüri takibi önerilir. Sülfonilüre ve insülin hipoglisemi riskini artırır. Hasta eğitimi diyet ve egzersiz uyumunu güçlendirir.`,
+      },
+      {
+        title: 'Astım ve KOAH',
+        text: `Astım değişken hava yolu obstrüksiyonu ile karakterizedir. İnhale kortikosteroid ve kısa etkili beta agonist basamak tedavide kullanılır. KOAH tanısı spirometrik olarak konur ve sigara bırakma temel tedavidir. Uzun etkili bronkodilatörler semptomları azaltır. Alevlenmelerde sistemik steroid ve gerektiğinde antibiyotik verilir.`,
+      },
+      {
+        title: 'Antibiyotik direnci ve stewardship',
+        text: `Antibiyotik direnci küresel sağlık tehdididir. Doğru etken, doz ve süre seçimi yerel direnç verilerine dayanmalıdır. Penisilin alerjisi öyküsü doğrulanmalıdır. Komplike idrar yolu enfeksiyonunda kültür alınması önerilir. Prokalsitonin antibiyotik süresini kısaltmada yardımcı olabilir.`,
+      },
+      {
+        title: 'İnme ve TIA',
+        text: `Akut iskemik inmede tromboliz veya trombektomi zaman penceresinde uygulanabilir. Sekonder profilakside antiagregan, tansiyon kontrolü ve statin kullanılır. Atriyal fibrilasyonda antikoagülasyon skorlama ile değerlendirilir. TIA sonrası hızlı tetkik inme riskini azaltır. Rehabilitasyon motor ve konuşma fonksiyonlarını destekler.`,
+      },
+      {
+        title: 'Depresyon ve anksiyete',
+        text: `Majör depresyon en az iki hafta süren çökkünlük ve anhedoni ile tanımlanır. SSRI grubu ilaçlar sıklıkla ilk seçenektir. İntihar riski değerlendirmesi zorunludur. Bilişsel davranışçı terapi ilaçla kombine edilebilir. Benzodiazepinler uzun süreli kullanımdan kaçınılmalıdır.`,
+      },
+      {
+        title: 'Çocukluk aşıları ve bağışıklama',
+        text: `Ulusal aşı takvimi kızamık, pnömokok, HPV ve diğer hastalıklara karşı koruma sağlar. Aşı sonrası ateş ve lokal reaksiyon yaygındır. Ciddi alerji öyküsü kontrendikasyon oluşturabilir. Seyahat öncesi ek aşılar değerlendirilmelidir.`,
+      },
+      {
+        title: 'Böbrek yetmezliği ve diyaliz',
+        text: `Kronik böbrek hastalığı eGFR ve albuminüri ile evrelenir. Diyabet ve hipertansiyon önemli risk faktörleridir. ACE inhibitörü veya ARB albuminüride faydalı olabilir. Diyaliz kritik böbrek yetmezliğinde başlatılır. Transplantasyon uygun hastalarda değerlendirilir.`,
+      },
+      {
+        title: 'Onkoloji ve immünoterapi',
+        text: `Kanser tanısı histopatolojik olarak konur ve TNM ile evrelenir. Tedavi cerrahi, radyoterapi, kemoterapi ve hedefe yönelik ajanları içerebilir. İmmünoterapi bazı tümörlerde kullanılır; immün ilişkili yan etkiler izlenmelidir. Palyatif bakım erken dönemde planlanmalıdır.`,
+      },
+    ],
+  },
+};
+
+function buildDocuments() {
+  const documents = [];
+
+  for (const topic of TOPICS) {
+    for (const lang of ['sv', 'tr']) {
+      let index = 1;
+      for (const entry of CORPUS[topic][lang]) {
+        const id = `${lang}-${topic}-${String(index).padStart(2, '0')}`;
+        documents.push({
+          id,
+          language: lang,
+          topic,
+          title: entry.title,
+          text: entry.text,
+          char_count: entry.text.length,
+          word_count: entry.text.split(/\s+/).length,
+        });
+        index += 1;
+      }
+    }
+  }
+
+  return documents;
+}
+
+function buildQueryPairs(documents) {
+  const pairs = [];
+  const byTopic = {};
+
+  for (const doc of documents) {
+    byTopic[doc.topic] ??= { sv: [], tr: [] };
+    byTopic[doc.topic][doc.language].push(doc.id);
+  }
+
+  for (const topic of TOPICS) {
+    const svIds = byTopic[topic].sv;
+    const trIds = byTopic[topic].tr;
+    const count = Math.min(svIds.length, trIds.length);
+    for (let i = 0; i < count; i += 1) {
+      pairs.push({
+        id: `pair-${topic}-${String(i + 1).padStart(2, '0')}`,
+        topic,
+        sv_doc_id: svIds[i],
+        tr_doc_id: trIds[i],
+      });
+    }
+  }
+
+  return pairs;
+}
+
+const documents = buildDocuments();
+const query_pairs = buildQueryPairs(documents);
+
+const corpus = {
+  version: 1,
+  generated_at: new Date().toISOString(),
+  description:
+    'Swedish and Turkish long-form documents for embedding benchmarks (mortgage, legal, medical).',
+  stats: {
+    document_count: documents.length,
+    languages: { sv: documents.filter((d) => d.language === 'sv').length, tr: documents.filter((d) => d.language === 'tr').length },
+    topics: TOPICS.reduce((acc, t) => {
+      acc[t] = documents.filter((d) => d.topic === t).length;
+      return acc;
+    }, {}),
+    query_pair_count: query_pairs.length,
+  },
+  documents,
+  query_pairs,
+};
+
+await fs.mkdir(path.dirname(outPath), { recursive: true });
+await fs.writeFile(outPath, JSON.stringify(corpus, null, 2), 'utf8');
+
+console.log(`Wrote ${documents.length} documents to ${outPath}`);
+console.log(JSON.stringify(corpus.stats, null, 2));
