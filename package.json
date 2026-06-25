@@ -12,7 +12,19 @@
     "probe:embeddinggemma": "node --expose-gc scripts/probe-embeddinggemma-backends.mjs",
     "probe:webgpu": "node scripts/probe-webgpu-hard.mjs",
     "probe:webgpu:browser": "node scripts/probe-webgpu-browser-strategy.mjs browser:q4-control",
-    "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs"
+    "probe:gemma-quants": "node scripts/probe-gemma-quant-matrix.mjs",
+    "probe:gemma4": "node --expose-gc scripts/probe-gemma4-matrix.mjs",
+    "probe:gemma4:quick": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick",
+    "probe:gemma4:hard": "node --expose-gc scripts/probe-gemma4-matrix.mjs --quick --hard",
+    "probe:gemma4:webgpu": "node scripts/probe-gemma4-hard.mjs",
+    "benchmark:gemma4": "node --expose-gc scripts/benchmark-gemma4.mjs",
+    "benchmark:gemma4:quick": "node --expose-gc scripts/benchmark-gemma4.mjs --quick",
+    "leaderboard:gemma4": "node scripts/generate-gemma4-leaderboard.mjs",
+    "build:ort": "bash scripts/build-ort.sh",
+    "build:ort:web": "bash scripts/build-ort-web.sh",
+    "build:ort:all": "bash scripts/build-ort.sh && bash scripts/build-ort-web.sh",
+    "verify:ort:q2f16": "node scripts/verify-ort-q2f16.mjs",
+    "verify:ort:web:q2f16": "node scripts/verify-ort-web-q2f16.mjs"
   },
   "repository": {
     "type": "git",
@@ -26,7 +38,20 @@
   },
   "homepage": "https://github.com/okasi/onnx-lab#readme",
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0"
+    "@huggingface/transformers": "^4.2.0",
+    "onnxruntime-common": "1.27.0",
+    "onnxruntime-node": "1.27.0",
+    "onnxruntime-web": "1.27.0"
+  },
+  "overrides": {
+    "@huggingface/transformers": {
+      "onnxruntime-common": "1.27.0",
+      "onnxruntime-node": "1.27.0",
+      "onnxruntime-web": "1.27.0"
+    },
+    "onnxruntime-common": "1.27.0",
+    "onnxruntime-node": "1.27.0",
+    "onnxruntime-web": "1.27.0"
   },
   "devDependencies": {
     "playwright-core": "^1.61.0",
