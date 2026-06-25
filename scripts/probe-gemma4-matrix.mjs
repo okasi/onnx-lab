@@ -41,6 +41,7 @@ function buildMatrix() {
   const modelFilter = argValue('--model');
   const dtypeFilter = parseList(argValue('--dtype'));
   const backendFilter = parseList(argValue('--backend')) ?? GEMMA4_BACKENDS;
+  const skipFp32 = hasFlag('--skip-fp32');
 
   let models = GEMMA4_MODELS;
   if (modelFilter) {
@@ -53,7 +54,10 @@ function buildMatrix() {
 
   const cells = [];
   for (const model of models) {
-    const quants = dtypeFilter ?? model.quants;
+    let quants = dtypeFilter ?? model.quants;
+    if (skipFp32) {
+      quants = quants.filter((d) => d !== 'fp32');
+    }
     for (const dtype of quants) {
       for (const backend of backendFilter) {
         cells.push({ model, dtype, backend });

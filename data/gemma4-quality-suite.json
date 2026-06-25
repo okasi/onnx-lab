@@ -1,0 +1,1059 @@
+{
+  "version": 2,
+  "description": "Gemma 4 quality eval v2 — expanded EN/SV/TR tasks across 7 categories.",
+  "categories": {
+    "domain_writing": {
+      "weight": 0.18,
+      "min_words": 60,
+      "target_words": 100,
+      "max_words": 220,
+      "tasks": [
+        {
+          "id": "write-en-mortgage",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Write a clear, informative paragraph of about 100 words in English for a first-time home buyer. Explain fixed vs variable mortgage rates, loan-to-value limits, and why reading the loan estimate matters. Use complete sentences.",
+          "keywords": [
+            "rate",
+            "mortgage",
+            "loan",
+            "lender",
+            "payment",
+            "interest",
+            "borrow",
+            "value",
+            "deposit",
+            "amort"
+          ]
+        },
+        {
+          "id": "write-en-legal",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Write a professional paragraph of about 100 words in English explaining consumer rights when signing a remote credit agreement. Mention cooling-off period, disclosure duties, and what to check before accepting.",
+          "keywords": [
+            "consumer",
+            "contract",
+            "right",
+            "credit",
+            "disclosure",
+            "period",
+            "agreement",
+            "law",
+            "cancel",
+            "information"
+          ]
+        },
+        {
+          "id": "write-en-medical",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Write an accessible paragraph of about 100 words in English about hypertension management for adults. Cover lifestyle changes, blood pressure monitoring, and when to contact a clinician.",
+          "keywords": [
+            "blood",
+            "pressure",
+            "health",
+            "lifestyle",
+            "salt",
+            "exercise",
+            "doctor",
+            "medication",
+            "monitor",
+            "heart"
+          ]
+        },
+        {
+          "id": "write-sv-mortgage",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Skriv ett informativt stycke på cirka 100 ord på svenska om bolån för förstagångsköpare. Förklara skillnaden mellan rörlig och bunden ränta, belåningsgrad och varför man ska läsa ESIS-dokumentet.",
+          "keywords": [
+            "bolån",
+            "ränta",
+            "bank",
+            "amorter",
+            "belån",
+            "bostad",
+            "lån",
+            "kredit",
+            "marginal",
+            "bostad"
+          ]
+        },
+        {
+          "id": "write-sv-legal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Skriv ett professionellt stycke på cirka 100 ord på svenska om konsumentens ångerrätt vid distansavtal enligt konsumentkreditlagen. Nämn informationskrav och vad som bör kontrolleras före accept.",
+          "keywords": [
+            "konsument",
+            "ånger",
+            "avtal",
+            "kredit",
+            "information",
+            "lag",
+            "rätt",
+            "period",
+            "köp",
+            "skydd"
+          ]
+        },
+        {
+          "id": "write-sv-medical",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Skriv ett lättförståeligt stycke på cirka 100 ord på svenska om hypertoni och egenvård. Beskriv livsstilsåtgärder, blodtrycksmätning och när man ska kontakta vården.",
+          "keywords": [
+            "blodtryck",
+            "hälsa",
+            "livsstil",
+            "salt",
+            "motion",
+            "läkare",
+            "medicin",
+            "hjärta",
+            "vård",
+            "patient"
+          ]
+        },
+        {
+          "id": "write-tr-mortgage",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "İlk kez ev alacak bir okuyucu için Türkçe yaklaşık 100 kelimelik bilgilendirici bir paragraf yazın. Sabit ve değişken konut kredisi faizini, kredi-değer oranını ve sözleşmeyi okumanın önemini açıklayın.",
+          "keywords": [
+            "kredi",
+            "faiz",
+            "konut",
+            "banka",
+            "oran",
+            "ödeme",
+            "taksit",
+            "borç",
+            "peşinat",
+            "mortgage"
+          ]
+        },
+        {
+          "id": "write-tr-legal",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Türkçe yaklaşık 100 kelimelik profesyonel bir paragraf yazın: uzaktan yapılan tüketici kredisi sözleşmelerinde cayma hakkı ve bilgilendirme yükümlülükleri. Kabul etmeden önce kontrol edilmesi gerekenleri belirtin.",
+          "keywords": [
+            "tüketici",
+            "sözleşme",
+            "hak",
+            "cayma",
+            "bilgi",
+            "kanun",
+            "kredi",
+            "mesafeli",
+            "yükümlülük",
+            "koruma"
+          ]
+        },
+        {
+          "id": "write-tr-medical",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Türkçe yaklaşık 100 kelimelik anlaşılır bir paragraf yazın: yetişkinlerde hipertansiyon yönetimi. Yaşam tarzı değişiklikleri, tansiyon ölçümü ve doktora başvurma zamanını açıklayın.",
+          "keywords": [
+            "tansiyon",
+            "sağlık",
+            "yaşam",
+            "tuz",
+            "egzersiz",
+            "doktor",
+            "ilaç",
+            "kalp",
+            "hasta",
+            "tedavi"
+          ]
+        },
+        {
+          "id": "write-en-mortgage-b",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Write about 100 words in English explaining amortization requirements when loan-to-value exceeds 70%, stress testing, and why borrowers should keep an emergency fund alongside mortgage payments.",
+          "keywords": [
+            "amort",
+            "loan",
+            "stress",
+            "payment",
+            "mortgage",
+            "fund",
+            "rate",
+            "bank",
+            "borrow",
+            "value"
+          ]
+        },
+        {
+          "id": "write-en-legal-b",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Write about 100 words in English on employment contract basics: written terms, notice periods, and protection against unfair dismissal under typical labor law frameworks.",
+          "keywords": [
+            "employ",
+            "contract",
+            "notice",
+            "worker",
+            "dismiss",
+            "law",
+            "right",
+            "term",
+            "employer",
+            "protection"
+          ]
+        },
+        {
+          "id": "write-en-medical-b",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Write about 100 words in English on type 2 diabetes self-management: blood glucose monitoring, diet, exercise, and when to seek urgent care.",
+          "keywords": [
+            "diabetes",
+            "glucose",
+            "blood",
+            "diet",
+            "exercise",
+            "insulin",
+            "doctor",
+            "sugar",
+            "health",
+            "care"
+          ]
+        },
+        {
+          "id": "write-sv-mortgage-b",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Skriv cirka 100 ord på svenska om pantbrev, lagfart och tillträdesdag vid bostadsköp. Förklara varför banken kräver säkerheter innan utbetalning.",
+          "keywords": [
+            "pantbrev",
+            "lagfart",
+            "tillträde",
+            "bank",
+            "köp",
+            "bostad",
+            "säkerhet",
+            "kostnad",
+            "fastighet",
+            "lån"
+          ]
+        },
+        {
+          "id": "write-sv-legal-b",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Skriv cirka 100 ord på svenska om hyresrätt och besittningsskydd: när hyresvärd får säga upp och vilken myndighet som prövar tvister.",
+          "keywords": [
+            "hyra",
+            "hyresgäst",
+            "uppsägning",
+            "besittning",
+            "saklig",
+            "hyresnämnd",
+            "avtal",
+            "bostad",
+            "rätt",
+            "tvist"
+          ]
+        },
+        {
+          "id": "write-sv-medical-b",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Skriv cirka 100 ord på svenska om diabetes typ 2 och egenvård: blodsockermätning, kost, motion och när man ska söka akut vård.",
+          "keywords": [
+            "diabetes",
+            "blodsocker",
+            "kost",
+            "motion",
+            "vård",
+            "insulin",
+            "läkare",
+            "hälsa",
+            "patient",
+            "behandling"
+          ]
+        },
+        {
+          "id": "write-tr-mortgage-b",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Türkçe yaklaşık 100 kelime: konut kredisinde erken ödeme, sigorta ve ipotek masraflarını açıklayın. Bankanın ödeme öncesi hangi belgeleri istediğini belirtin.",
+          "keywords": [
+            "kredi",
+            "ipotek",
+            "sigorta",
+            "ödeme",
+            "banka",
+            "masraf",
+            "konut",
+            "erken",
+            "belge",
+            "faiz"
+          ]
+        },
+        {
+          "id": "write-tr-legal-b",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Türkçe yaklaşık 100 kelime: KVKK kapsamında kişisel verilerin korunması, aydınlatma yükümlülüğü ve veri sahibi başvuru hakları.",
+          "keywords": [
+            "kvkk",
+            "veri",
+            "kişisel",
+            "aydınlatma",
+            "hak",
+            "sorumlu",
+            "kanun",
+            "başvuru",
+            "koruma",
+            "işleme"
+          ]
+        },
+        {
+          "id": "write-tr-medical-b",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Türkçe yaklaşık 100 kelime: tip 2 diyabet yönetimi — kan şekeri takibi, beslenme, egzersiz ve acil başvuru belirtileri.",
+          "keywords": [
+            "diyabet",
+            "şeker",
+            "kan",
+            "beslenme",
+            "egzersiz",
+            "insülin",
+            "doktor",
+            "sağlık",
+            "hasta",
+            "tedavi"
+          ]
+        }
+      ]
+    },
+    "json_extraction": {
+      "weight": 0.18,
+      "tasks": [
+        {
+          "id": "json-en-mortgage",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Read the text and extract JSON only (no markdown):\n{\"borrower_name\":string,\"loan_amount_usd\":number,\"interest_rate_percent\":number,\"loan_term_years\":number,\"property_city\":string,\"ltv_percent\":number,\"rate_type\":\"fixed\"|\"variable\"}\n\nTEXT:\nLoan application summary — Borrower: Maria Chen. Property in Austin, Texas. Purchase price USD 480,000 with loan amount USD 384,000 (80% LTV). Approved 30-year variable-rate mortgage at 6.25% APR. Closing 14 May 2026.\n\nJSON:",
+          "gold": {
+            "borrower_name": "Maria Chen",
+            "loan_amount_usd": 384000,
+            "interest_rate_percent": 6.25,
+            "loan_term_years": 30,
+            "property_city": "Austin",
+            "ltv_percent": 80,
+            "rate_type": "variable"
+          },
+          "fields": [
+            "borrower_name",
+            "loan_amount_usd",
+            "interest_rate_percent",
+            "loan_term_years",
+            "property_city",
+            "ltv_percent",
+            "rate_type"
+          ]
+        },
+        {
+          "id": "json-en-legal",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Extract JSON only:\n{\"law_name\":string,\"notice_days\":number,\"party\":string,\"penalty_usd\":number,\"binding\":boolean}\n\nTEXT:\nConsumer Credit Act — Lender must give 14-day cooling-off notice before binding. Borrower: James Okonkwo. Early repayment penalty USD 0 if within notice window. Agreement becomes binding after notice expires.\n\nJSON:",
+          "gold": {
+            "law_name": "Consumer Credit Act",
+            "notice_days": 14,
+            "party": "James Okonkwo",
+            "penalty_usd": 0,
+            "binding": true
+          },
+          "fields": [
+            "law_name",
+            "notice_days",
+            "party",
+            "penalty_usd",
+            "binding"
+          ]
+        },
+        {
+          "id": "json-en-medical",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Extract JSON only:\n{\"patient_age\":number,\"systolic_bp\":number,\"diastolic_bp\":number,\"diagnosis\":string,\"medication_mg\":number,\"follow_up_weeks\":number}\n\nTEXT:\nPatient summary — Male age 58, BP 148/92 mmHg. Primary hypertension diagnosed. Started lisinopril 10 mg daily. Follow-up in 2 weeks. Advised salt restriction and walking.\n\nJSON:",
+          "gold": {
+            "patient_age": 58,
+            "systolic_bp": 148,
+            "diastolic_bp": 92,
+            "diagnosis": "hypertension",
+            "medication_mg": 10,
+            "follow_up_weeks": 2
+          },
+          "fields": [
+            "patient_age",
+            "systolic_bp",
+            "diastolic_bp",
+            "diagnosis",
+            "medication_mg",
+            "follow_up_weeks"
+          ]
+        },
+        {
+          "id": "json-sv-mortgage",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Extrahera JSON endast:\n{\"bank\":string,\"loan_amount_sek\":number,\"ltv_percent\":number,\"rate_type\":string,\"amort_percent\":number}\n\nTEXT:\nErbjudande från Nordea: bolån 3 200 000 kronor till villa i Uppsala. Belåningsgrad 65 procent. Rörlig ränta 4,89 procent. Amorteringskrav 1 procent per år enligt FI.\n\nJSON:",
+          "gold": {
+            "bank": "Nordea",
+            "loan_amount_sek": 3200000,
+            "ltv_percent": 65,
+            "rate_type": "rörlig",
+            "amort_percent": 1
+          },
+          "fields": [
+            "bank",
+            "loan_amount_sek",
+            "ltv_percent",
+            "rate_type",
+            "amort_percent"
+          ]
+        },
+        {
+          "id": "json-sv-legal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Extrahera JSON:\n{\"law_reference\":string,\"withdrawal_days\":number,\"contract_type\":string,\"consumer_country\":string,\"penalty_applies\":boolean}\n\nTEXT:\nKonsumentkreditlagen (2010:1846) reglerar kreditavtal i Sverige. Vid distansavtal om konsumentkrediter har konsumenten 14 dagars ångerrätt. Avtalet gällde privatlån 150 000 kronor. Ingen vite vid ångring inom fristen.\n\nJSON:",
+          "gold": {
+            "law_reference": "2010:1846",
+            "withdrawal_days": 14,
+            "contract_type": "konsumentkredit",
+            "consumer_country": "Sverige",
+            "penalty_applies": false
+          },
+          "fields": [
+            "law_reference",
+            "withdrawal_days",
+            "contract_type",
+            "consumer_country",
+            "penalty_applies"
+          ]
+        },
+        {
+          "id": "json-sv-medical",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Extrahera JSON:\n{\"patient_age\":number,\"systolic_bp\":number,\"diastolic_bp\":number,\"diagnosis\":string,\"medication_mg\":number,\"follow_up_weeks\":number}\n\nTEXT:\nPatient 62 år, blodtryck 152/94. Hypertoni grad 1. Metoprolol 50 mg dagligen insatt. Återbesök om 3 veckor. Rekommenderad DASH-kost och promenader.\n\nJSON:",
+          "gold": {
+            "patient_age": 62,
+            "systolic_bp": 152,
+            "diastolic_bp": 94,
+            "diagnosis": "hypertoni",
+            "medication_mg": 50,
+            "follow_up_weeks": 3
+          },
+          "fields": [
+            "patient_age",
+            "systolic_bp",
+            "diastolic_bp",
+            "diagnosis",
+            "medication_mg",
+            "follow_up_weeks"
+          ]
+        },
+        {
+          "id": "json-tr-mortgage",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "JSON çıkarın:\n{\"bank\":string,\"loan_amount_try\":number,\"term_years\":number,\"rate_percent\":number,\"down_payment_percent\":number}\n\nMETİN:\nZiraat Bankası onayı: 2 400 000 TL konut kredisi, 15 yıl vade, yıllık %38,5 faiz. Peşinat oranı %25. DASK ve konut sigortası zorunlu.\n\nJSON:",
+          "gold": {
+            "bank": "Ziraat",
+            "loan_amount_try": 2400000,
+            "term_years": 15,
+            "rate_percent": 38.5,
+            "down_payment_percent": 25
+          },
+          "fields": [
+            "bank",
+            "loan_amount_try",
+            "term_years",
+            "rate_percent",
+            "down_payment_percent"
+          ]
+        },
+        {
+          "id": "json-tr-legal",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "JSON çıkarın:\n{\"law_number\":string,\"withdrawal_days\":number,\"topic\":string,\"authority\":string,\"penalty_applies\":boolean}\n\nMETİN:\n6502 sayılı Tüketicinin Korunması Hakkında Kanun mesafeli sözleşmelerde bilgilendirme zorunludur. Finansal hizmetlerde 14 gün cayma hakkı tanınabilir. Uyuşmazlıklar Tüketici Hakem Heyetine gider. Cayma süresinde ceza uygulanmaz.\n\nJSON:",
+          "gold": {
+            "law_number": "6502",
+            "withdrawal_days": 14,
+            "topic": "tüketici kredisi",
+            "authority": "Tüketici Hakem Heyeti",
+            "penalty_applies": false
+          },
+          "fields": [
+            "law_number",
+            "withdrawal_days",
+            "topic",
+            "authority",
+            "penalty_applies"
+          ]
+        },
+        {
+          "id": "json-tr-medical",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "JSON çıkarın:\n{\"patient_age\":number,\"systolic_bp\":number,\"diastolic_bp\":number,\"diagnosis\":string,\"medication_mg\":number,\"follow_up_weeks\":number}\n\nMETİN:\nHasta özeti — 58 yaşında erkek, tansiyon 148/92 mmHg. Primer hipertansiyon. Lisinopril 10 mg günde bir. İki hafta sonra kontrol. Tuz kısıtlaması önerildi.\n\nJSON:",
+          "gold": {
+            "patient_age": 58,
+            "systolic_bp": 148,
+            "diastolic_bp": 92,
+            "diagnosis": "hipertansiyon",
+            "medication_mg": 10,
+            "follow_up_weeks": 2
+          },
+          "fields": [
+            "patient_age",
+            "systolic_bp",
+            "diastolic_bp",
+            "diagnosis",
+            "medication_mg",
+            "follow_up_weeks"
+          ]
+        }
+      ]
+    },
+    "mcq": {
+      "weight": 0.16,
+      "tasks": [
+        {
+          "id": "mcq-en-mortgage-ltv",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "A home costs $500,000 and the buyer puts down $100,000. What is the loan-to-value (LTV) ratio on the mortgage?\nA) 60%\nB) 70%\nC) 80%\nD) 90%\nAnswer with a single letter (A, B, C, or D) only.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-sv-legal-withdrawal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Enligt vanlig svensk konsumentkreditreglering för distansavtal, hur lång är standard ångerfrist för konsumentkrediter (om inget annat anges)?\nA) 7 dagar\nB) 14 dagar\nC) 30 dagar\nD) 90 dagar\nSvara med en enda bokstav (A, B, C eller D).",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-tr-medical-hypertension",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Yetişkinlerde hipertansiyon tanısı için ambulator kan basıncı genelde hangi eşiğin üzerinde kabul edilir?\nA) 120/80 mmHg\nB) 130/85 mmHg\nC) 140/90 mmHg\nD) 160/100 mmHg\nYalnızca tek harf (A, B, C veya D) yazın.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-en-legal-contract",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Which principle requires a party to disclose material facts before the other party is bound in many consumer finance contracts?\nA) Parol evidence rule\nB) Duty of disclosure / transparency\nC) Res judicata\nD) Stare decisis\nAnswer with one letter only.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-en-medical-lifestyle",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "First-line lifestyle advice for stage 1 hypertension typically includes which combination?\nA) High sodium diet and sedentary behavior\nB) Reduced sodium, regular exercise, weight management\nC) Immediate surgery\nD) Avoid all fluids\nAnswer with one letter only.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-sv-mortgage-amort",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Vid bolån med belåningsgrad över 70 % i Sverige gäller Finansinspektionens amorteringskrav normalt minst:\nA) 0 % per år\nB) 1 % per år av skulden\nC) 2 % per år av skulden\nD) 5 % per månad\nSvara med en bokstav.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-en-mortgage-payment",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "A borrower pays $2,400/month on a 30-year fixed mortgage. Which factor does NOT directly change the scheduled principal portion in the first years?\nA) Interest rate\nB) Loan balance\nC) Borrower age\nD) Remaining term\nAnswer with one letter.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-sv-mortgage-belaning",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Om bostadens värde sjunker men skulden är oförändrad, vad händer med belåningsgraden?\nA) Den minskar\nB) Den ökar\nC) Oförändrad\nD) Avgiftsfri\nSvara med en bokstav.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-tr-mortgage-oran",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Konut kredisinde peşinat %20 ise kredi/değer oranı yaklaşık nedir?\nA) %20\nB) %60\nC) %80\nD) %100\nTek harf yazın.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-en-legal-cooling",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "A remote consumer credit agreement often allows withdrawal without penalty within how many days in many EU-style regimes?\nA) 3 days\nB) 7 days\nC) 14 days\nD) 60 days\nOne letter only.",
+          "correct": "C"
+        },
+        {
+          "id": "mcq-sv-legal-hyra",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Vilken myndighet prövar ofta hyrestvister i Sverige?\nA) Finansinspektionen\nB) Hyresnämnden\nC) Skatteverket\nD) Kronofogden\nSvara med en bokstav.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-tr-legal-kvkk",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Türkiye'de kişisel verilerin korunması hangi kanunla düzenlenir?\nA) 6098 sayılı TBK\nB) 6698 sayılı KVKK\nC) 5510 sayılı SGK\nD) 6502 sayılı TKHK\nTek harf.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-en-medical-bp",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Normal adult blood pressure is generally considered below which reading?\nA) 140/90 mmHg\nB) 120/80 mmHg\nC) 160/100 mmHg\nD) 100/60 mmHg\nOne letter.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-sv-medical-diabetes",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Vilket är ett typiskt egenvårdsmål vid diabetes typ 2?\nA) Öka sockerintag\nB) Regelbunden fysisk aktivitet\nC) Sluta mäta blodsocker\nD) Undvika läkarbesök\nSvara med en bokstav.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-tr-medical-tuz",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Hipertansiyon tedavisinde genelde önerilen yaşam tarzı değişikliği hangisidir?\nA) Tuz alımını artırmak\nB) Tuz alımını azaltmak\nC) Egzersizden kaçınmak\nD) Sıvı alımını durdurmak\nTek harf.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-en-mortgage-escrow",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "An escrow account in a US-style mortgage typically holds funds for:\nA) Groceries and utilities only\nB) Property taxes and insurance\nC) Stock investments\nD) Credit card payments\nOne letter.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-sv-legal-las",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Vilken lag reglerar grundläggande anställningsskydd i Sverige?\nA) Hyreslagen\nB) LAS\nC) Ärvdabalken\nD) LOU\nSvara med en bokstav.",
+          "correct": "B"
+        },
+        {
+          "id": "mcq-tr-mortgage-sigorta",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Türkiye'de konut kredisiyle birlikte genelde hangi sigorta zorunludur?\nA) Seyahat sigortası\nB) DASK / deprem sigortası\nC) Hayat sigortası hariç hiçbiri\nD) Evcil hayvan sigortası\nTek harf.",
+          "correct": "B"
+        }
+      ]
+    },
+    "reading_comprehension": {
+      "weight": 0.12,
+      "tasks": [
+        {
+          "id": "rc-en-legal",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Passage: The lender must provide an itemized disclosure of the annual percentage rate, finance charge, and total payments before the borrower accepts a binding offer. The borrower may rescind certain home-secured transactions within three business days after closing.\nQuestion: How many business days does the borrower have to rescind certain home-secured transactions after closing? Reply with a number only.",
+          "gold_answers": [
+            "3",
+            "three"
+          ]
+        },
+        {
+          "id": "rc-sv-mortgage",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Text: När belåningsgraden överstiger 50 procent kräver Finansinspektionen amortering av minst en procent per år upp till 70 procent belåning.\nFråga: Hur många procent per år måste amorteras när belåningsgraden är mellan 50 och 70 procent? Svara med en siffra.",
+          "gold_answers": [
+            "1",
+            "en"
+          ]
+        },
+        {
+          "id": "rc-tr-medical",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Metin: Hasta 10 mg lisinopril ile tedaviye başlandı ve iki hafta sonra kontrol planlandı.\nSoru: Kontrol kaç hafta sonra planlandı? Yalnızca sayı yazın.",
+          "gold_answers": [
+            "2",
+            "iki"
+          ]
+        },
+        {
+          "id": "rc-en-mortgage",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Passage: The borrower put down 20% on a $400,000 home, financing the rest with a 30-year loan.\nQuestion: What was the loan amount in dollars? Reply with digits only.",
+          "gold_answers": [
+            "320000",
+            "320,000"
+          ]
+        },
+        {
+          "id": "rc-sv-legal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Text: Konsumenten har 14 dagars ångerrätt vid distansavtal om konsumentkrediter.\nFråga: Hur många dagars ångerrätt? Svara med en siffra.",
+          "gold_answers": [
+            "14"
+          ]
+        },
+        {
+          "id": "rc-tr-mortgage",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Metin: Peşinat oranı %25 olan konut kredisinde kalan finansman oranı %75'tir.\nSoru: Finansman oranı yüzde kaçtır? Yalnızca sayı yazın.",
+          "gold_answers": [
+            "75"
+          ]
+        },
+        {
+          "id": "rc-en-medical",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Passage: The patient was started on metformin 500 mg twice daily and referred for HbA1c recheck in 3 months.\nQuestion: How many months until HbA1c recheck? Number only.",
+          "gold_answers": [
+            "3",
+            "three"
+          ]
+        },
+        {
+          "id": "rc-sv-medical",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Text: Patienten fick metoprolol 50 mg dagligen och återbesök om 3 veckor.\nFråga: Hur många veckor till återbesök? Svara med siffra.",
+          "gold_answers": [
+            "3",
+            "tre"
+          ]
+        },
+        {
+          "id": "rc-tr-legal",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Metin: Mesafeli sözleşmelerde cayma hakkı 14 gün olarak uygulanabilir.\nSoru: Cayma süresi kaç gün? Yalnızca sayı.",
+          "gold_answers": [
+            "14",
+            "on dört"
+          ]
+        }
+      ]
+    },
+    "instruction_following": {
+      "weight": 0.12,
+      "tasks": [
+        {
+          "id": "if-en-bullets",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "List exactly three bullet points (each starting with \"- \") explaining why a borrower should compare APR, not just nominal interest rate. Do not add any other text before or after the list.",
+          "rules": {
+            "type": "bullet_count",
+            "count": 3,
+            "prefix": "- "
+          }
+        },
+        {
+          "id": "if-sv-word-limit",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Svara på svenska med exakt två meningar (ingen lista, ingen rubrik) om varför ångerrätt skyddar konsumenten vid distansavtal.",
+          "rules": {
+            "type": "sentence_count",
+            "count": 2,
+            "language": "sv"
+          }
+        },
+        {
+          "id": "if-tr-yesno",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Soru: Hipertansiyon tedavisinde tuz kısıtlaması önerilir mi? Yalnızca \"Evet\" veya \"Hayır\" kelimesiyle cevap verin, başka metin eklemeyin.",
+          "rules": {
+            "type": "exact_one_of",
+            "options": [
+              "Evet",
+              "Hayır",
+              "evet",
+              "hayır"
+            ]
+          }
+        },
+        {
+          "id": "if-en-legal-numbered",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Reply with exactly two numbered lines (1. and 2.) stating two consumer rights before signing a credit contract. No other text.",
+          "rules": {
+            "type": "numbered_count",
+            "count": 2,
+            "prefix": "1."
+          }
+        },
+        {
+          "id": "if-sv-mortgage-bullets",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Lista exakt tre punkter (varje rad börjar med \"- \") om fördelar med att amortera bolån. Ingen annan text.",
+          "rules": {
+            "type": "bullet_count",
+            "count": 3,
+            "prefix": "- "
+          }
+        },
+        {
+          "id": "if-tr-legal-yesno",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Soru: Mesafeli sözleşmelerde bilgilendirme formu verilmesi zorunlu mudur? Yalnızca \"Evet\" veya \"Hayır\" yazın.",
+          "rules": {
+            "type": "exact_one_of",
+            "options": [
+              "Evet",
+              "Hayır",
+              "evet",
+              "hayır"
+            ]
+          }
+        },
+        {
+          "id": "if-en-medical-sentences",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Answer in exactly two complete sentences about why home blood pressure monitoring helps hypertension care. No bullet list.",
+          "rules": {
+            "type": "sentence_count",
+            "count": 2
+          }
+        },
+        {
+          "id": "if-sv-medical-yesno",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Fråga: Bör patienter med hypertoni minska saltintaget? Svara endast \"Ja\" eller \"Nej\".",
+          "rules": {
+            "type": "exact_one_of",
+            "options": [
+              "Ja",
+              "Nej",
+              "ja",
+              "nej"
+            ]
+          }
+        },
+        {
+          "id": "if-tr-mortgage-bullets",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Konut kredisinde dikkat edilmesi gereken tam üç maddeyi \"- \" ile başlayan satırlar halinde yazın. Başka metin eklemeyin.",
+          "rules": {
+            "type": "bullet_count",
+            "count": 3,
+            "prefix": "- "
+          }
+        }
+      ]
+    },
+    "summarization": {
+      "weight": 0.12,
+      "tasks": [
+        {
+          "id": "sum-en-mortgage",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Summarize in exactly two sentences:\n\nWhen taking a mortgage, the lender sets an individual margin on top of the reference rate and requires amortization when loan-to-value exceeds regulatory thresholds. Borrowers should compare the annual percentage rate including fees, not only the nominal interest rate, and keep an emergency fund for rate shocks.",
+          "required_keywords": [
+            "mortgage",
+            "individual",
+            "reference",
+            "requires",
+            "amortization",
+            "loantovalue"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-en-legal",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Summarize in exactly two sentences:\n\nConsumer credit laws require clear pre-contract disclosure of the annual percentage rate, total cost, and withdrawal rights before the agreement becomes binding. Remote contracts often include a cooling-off period during which the consumer may cancel without penalty.",
+          "required_keywords": [
+            "consumer",
+            "require",
+            "precontract",
+            "disclosure",
+            "percentage",
+            "withdrawal"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-en-medical",
+          "language": "en",
+          "topic": "medical",
+          "prompt": "Summarize in exactly two sentences:\n\nHypertension management combines lifestyle measures such as reduced sodium intake, regular exercise, and weight control with home blood pressure monitoring. Clinicians may prescribe medication when readings remain above guideline thresholds despite lifestyle changes.",
+          "required_keywords": [
+            "hypertension",
+            "management",
+            "combines",
+            "lifestyle",
+            "measures",
+            "reduced"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-sv-mortgage",
+          "language": "sv",
+          "topic": "mortgage",
+          "prompt": "Sammanfatta i exakt två meningar:\n\nVid köp av fastighet eller bostadsrätt tillkommer kostnader utöver själva köpeskillingen. Pantbrev används som säkerhet för bolånet och utfärdas av Lantmäteriet; kostnaden beror på hur många pantbrev som redan finns i fastigheten och om nya behöver tas ut. Lagfart är den juridiska registreringen som visar att du äger fastigheten och debiteras som en procentandel av köpeskillingen. Bostadsrätter omfattas inte av lagfart på samma sätt, men föreningen kan ha överlåtelseavgift och pantsättningsavgift enligt stadgarna. Banken kräver normalt att pantbrev och försäkring är ordnade innan utbetalning sker på tillträdesdagen. Köpekontraktet bör tydligt reglera handpenning, tillträde, dolda fel och eventuell besiktning. Om säljaren har kvar ett bolån löser mäklaren ofta skulden genom att köpeskillingen betalas till banken med pantbrev som säkerhet. Rådgivning kring skatteavdrag för räntekostnader och eventuell vinstbeskattning vid framtida försäljning bör tas med en skatterådgivare.",
+          "required_keywords": [
+            "fastighet",
+            "bostadsrätt",
+            "tillkommer",
+            "kostnader",
+            "köpeskillingen",
+            "pantbrev"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-sv-legal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Sammanfatta i exakt två meningar:\n\nDataskyddsförordningen (GDPR) styr behandling av personuppgifter inom EU och EES. Personuppgiftsansvarig måste ha rättslig grund, ofta avtal eller berättigat intresse, för att behandla uppgifter. Den registrerade har rätt till tillgång, rättelse, radering och dataportabilitet under definierade förutsättningar. Integritetsskyddsmyndigheten (IMY) utövar tillsyn och kan döma ut sanktionsavgifter. Vid juridisk process kan personuppgifter behandlas för rättsligt ändamål, men sekretess och proportionalitet måste beaktas. Personuppgiftsbiträdesavtal krävs när extern leverantör behandlar data för den ansvariges räkning. Överföring till tredjeland kräver lämpliga skyddsåtgärder som standardavtalsklausuler.",
+          "required_keywords": [
+            "dataskyddsförordningen",
+            "behandling",
+            "personuppgifter",
+            "personuppgiftsansvarig",
+            "rättslig",
+            "berättigat"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-sv-medical",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Sammanfatta i exakt två meningar:\n\nTyp 2-diabetes kännetecknas av insulinresistens och progressiv beta-cellssvikt. Diagnos ställs vid fastande glukos, HbA1c eller oral glukostoleranstest enligt WHO-kriterier. Metformin är förstahandsval om inte kontraindicerat. Uppföljning av fotstatus, ögonbotten och mikroalbuminuri rekommenderas årligen. Hypoglykemi risk ökar med sulfonylurea och insulin. Patientutbildning om kolhydraträkning och fysisk aktivitet är central för egenvård.",
+          "required_keywords": [
+            "2diabetes",
+            "kännetecknas",
+            "insulinresistens",
+            "progressiv",
+            "betacellssvikt",
+            "diagnos"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-tr-mortgage",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Tam iki cümleyle özetleyin:\n\nKonut alımında ipotek, bankanın alacak hakkını güvence altına alan teminat türüdür. İpotek derecesi önceki tesis edilmiş ipoteklere göre belirlenir ve tesis masrafı ile harçlar tapu işleminde tahsil edilir. Satış işlemi sırasında belediye rayiç bedeli ve emlak vergisi beyanı kontrol edilir. Kat mülkiyeti kurulu binalarda yönetim planı ve aidat borçları satıcı tarafından kapatılmalıdır. Tapu iptal ve tescil işlemleri genellikle banka avukatı veya güvenilir emlak danışmanı koordinasyonunda yürütülür. Alıcının kimlik, vergi levhası ve medeni durum belgeleri eksiksiz sunulmalıdır. Şerhli tapu durumunda kredinin kullandırılması riskli olabilir; bu nedenle tapu kaydı ve imar durumu mutlaka incelenmelidir.",
+          "required_keywords": [
+            "alımında",
+            "ipotek",
+            "bankanın",
+            "hakkını",
+            "güvence",
+            "teminat"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-tr-legal",
+          "language": "tr",
+          "topic": "legal",
+          "prompt": "Tam iki cümleyle özetleyin:\n\n6698 sayılı Kişisel Verilerin Korunması Kanunu, veri sorumlusunun aydınlatma yükümlülüğü ve hukuka uygunluk sebeplerini düzenler. Özel nitelikli kişisel veriler için açık rıza veya kanuni istisna aranır. Veri sahibi başvurusu üzerine erişim, düzeltme ve silme talepleri yanıtlanmalıdır. Kişisel Verileri Koruma Kurulu idari para cezası uygulayabilir. Veri işleyen sözleşmeleri ve yurt dışına aktarım için taahhütname veya yeterlilik kararı gerekir.",
+          "required_keywords": [
+            "kişisel",
+            "verilerin",
+            "korunması",
+            "kanunu",
+            "sorumlusunun",
+            "aydınlatma"
+          ],
+          "sentence_count": 2
+        },
+        {
+          "id": "sum-tr-medical",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Tam iki cümleyle özetleyin:\n\nTip 2 diyabet insülin direnci ve beta hücre disfonksiyonu ile seyreder. Tanı açlık plazma glukozu, HbA1c veya OGTT ile konur. Metformin ilk seçenektir. Yıllık ayak muayenesi, retinal tarama ve mikroalbuminüri takibi önerilir. Sülfonilüre ve insülin hipoglisemi riskini artırır. Hasta eğitimi diyet ve egzersiz uyumunu güçlendirir.",
+          "required_keywords": [
+            "diyabet",
+            "insülin",
+            "direnci",
+            "disfonksiyonu",
+            "seyreder",
+            "glukozu"
+          ],
+          "sentence_count": 2
+        }
+      ]
+    },
+    "classification": {
+      "weight": 0.12,
+      "tasks": [
+        {
+          "id": "cls-en-mortgage",
+          "language": "en",
+          "topic": "mortgage",
+          "prompt": "Reply with ONE word only: mortgage, legal, or medical.\n\nText:\nThe lender required a 20% down payment and set a 30-year amortization schedule with escrow for taxes.",
+          "expected": "mortgage"
+        },
+        {
+          "id": "cls-en-legal",
+          "language": "en",
+          "topic": "legal",
+          "prompt": "Reply with ONE word only: mortgage, legal, or medical.\n\nText:\nThe consumer may withdraw from the remote credit agreement within fourteen days without stating a reason.",
+          "expected": "legal"
+        },
+        {
+          "id": "cls-sv-medical",
+          "language": "sv",
+          "topic": "medical",
+          "prompt": "Svara med ETT ord: mortgage, legal eller medical.\n\nText:\nPatienten rekommenderades att mäta blodtryck dagligen och minska saltintaget vid hypertoni.",
+          "expected": "medical"
+        },
+        {
+          "id": "cls-tr-mortgage",
+          "language": "tr",
+          "topic": "mortgage",
+          "prompt": "Yalnızca BİR kelime: mortgage, legal veya medical.\n\nText:\nBanka %25 peşinat sonrası 15 yıllık konut kredisi onayladı ve DASK poliçesi istedi.",
+          "expected": "mortgage"
+        },
+        {
+          "id": "cls-sv-legal",
+          "language": "sv",
+          "topic": "legal",
+          "prompt": "Svara med ETT ord: mortgage, legal eller medical.\n\nText:\nHyresgästen har besittningsskydd och hyresvärd måste ha saklig grund vid uppsägning.",
+          "expected": "legal"
+        },
+        {
+          "id": "cls-tr-medical",
+          "language": "tr",
+          "topic": "medical",
+          "prompt": "Yalnızca BİR kelime: mortgage, legal veya medical.\n\nText:\nHipertansiyon tanısıyla lisinopril 10 mg reçete edildi ve tuz kısıtlaması önerildi.",
+          "expected": "medical"
+        }
+      ]
+    }
+  }
+}

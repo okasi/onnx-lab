@@ -27,10 +27,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const PORT = 8791 + Math.floor(Math.random() * 100);
 
-function round(n, d = 2) {
-  return Number(Number(n).toFixed(d));
-}
-
 function memSnapshot() {
   const m = process.memoryUsage();
   return { rss_mb: round(m.rss / 1024 / 1024), heap_used_mb: round(m.heapUsed / 1024 / 1024) };
@@ -148,9 +144,9 @@ async function runWebgpu() {
       });
       try {
         const page = await browser.newPage();
-        page.setDefaultTimeout(3_600_000);
+        page.setDefaultTimeout(600_000);
         await page.goto(`http://127.0.0.1:${PORT}/`);
-        await page.waitForFunction(() => window.__RESULT__, null, { timeout: 3_600_000 });
+        await page.waitForFunction(() => window.__RESULT__, null, { timeout: 600_000 });
         const payload = await page.evaluate(() => window.__RESULT__);
         if (payload.status !== 'ok') {
           throw new Error(payload.error);
