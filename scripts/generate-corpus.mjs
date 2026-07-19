@@ -3,12 +3,9 @@
  * Generates Swedish/Turkish benchmark corpus for embedding evaluation.
  * Topics: mortgage, legal, medical — at least 50 long documents.
  */
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { isMain, projectPath, writeJson } from '../lib/benchmark-support.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const outPath = path.join(__dirname, '..', 'data', 'benchmark-corpus.json');
+const outPath = projectPath('data', 'benchmark-corpus.json');
 
 const TOPICS = ['mortgage', 'legal', 'medical'];
 
@@ -300,29 +297,33 @@ function buildQueryPairs(documents) {
   return pairs;
 }
 
-const documents = buildDocuments();
-const query_pairs = buildQueryPairs(documents);
+export function buildCorpus() {
+  const documents = buildDocuments();
+  const queryPairs = buildQueryPairs(documents);
+  return {
+    version: 1,
+    description:
+      'Swedish and Turkish long-form documents for embedding benchmarks (mortgage, legal, medical).',
+    stats: {
+      document_count: documents.length,
+      languages: {
+        sv: documents.filter((document) => document.language === 'sv').length,
+        tr: documents.filter((document) => document.language === 'tr').length,
+      },
+      topics: TOPICS.reduce((counts, topic) => {
+        counts[topic] = documents.filter((document) => document.topic === topic).length;
+        return counts;
+      }, {}),
+      query_pair_count: queryPairs.length,
+    },
+    documents,
+    query_pairs: queryPairs,
+  };
+}
 
-const corpus = {
-  version: 1,
-  generated_at: new Date().toISOString(),
-  description:
-    'Swedish and Turkish long-form documents for embedding benchmarks (mortgage, legal, medical).',
-  stats: {
-    document_count: documents.length,
-    languages: { sv: documents.filter((d) => d.language === 'sv').length, tr: documents.filter((d) => d.language === 'tr').length },
-    topics: TOPICS.reduce((acc, t) => {
-      acc[t] = documents.filter((d) => d.topic === t).length;
-      return acc;
-    }, {}),
-    query_pair_count: query_pairs.length,
-  },
-  documents,
-  query_pairs,
-};
-
-await fs.mkdir(path.dirname(outPath), { recursive: true });
-await fs.writeFile(outPath, JSON.stringify(corpus, null, 2), 'utf8');
-
-console.log(`Wrote ${documents.length} documents to ${outPath}`);
-console.log(JSON.stringify(corpus.stats, null, 2));
+if (isMain(import.meta.url)) {
+  const corpus = buildCorpus();
+  await writeJson(outPath, corpus);
+  console.log(`Wrote ${corpus.documents.length} documents to ${outPath}`);
+  console.log(JSON.stringify(corpus.stats, null, 2));
+}

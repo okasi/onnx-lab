@@ -4,25 +4,21 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import { MODELS } from '../config/models.mjs';
+import {
+  ROOT_DIR,
+  RESULTS_DIR,
+  formatDuration,
+  projectPath,
+  readJson,
+} from '../lib/benchmark-support.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const resultsDir = path.join(root, 'results');
-const outPath = path.join(root, 'LEADERBOARD.md');
+const defaultOutPath = projectPath('LEADERBOARD.md');
 const activeModelIds = new Set(MODELS.map((m) => m.id));
 
 function filterActiveModels(results) {
   return results.filter((r) => activeModelIds.has(r.model_id));
-}
-
-function formatDuration(ms) {
-  if (!ms) return '—';
-  const sec = Math.floor(ms / 1000);
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 function fmt(v, digits = 4) {
@@ -48,7 +44,7 @@ function rowMetrics(r) {
     dim: r.embedding_dim ?? '—',
     load_s: r.load_time_ms ? (r.load_time_ms / 1000).toFixed(1) : '—',
     total: formatDuration(r.total_time_ms),
-    ms_doc: q ? r.inference?.mean_ms : r.inference?.mean_ms ?? '—',
+    ms_doc: r.inference?.mean_ms ?? '—',
     p95: r.inference?.p95_ms ?? '—',
     rss: r.memory?.peak_rss_mb ?? '—',
     quality: q?.composite_score,
@@ -68,14 +64,13 @@ function rowMetrics(r) {
 }
 
 async function findLatestBenchmarkJson() {
-  const files = (await fs.readdir(resultsDir)).filter(
-    (f) => f.startsWith('benchmark') && f.endsWith('.json'),
-  );
+  const files = (await fs.readdir(RESULTS_DIR))
+    .filter((file) => /^benchmark-(?:full-)?\d+\.json$/.test(file));
 
   const ranked = [];
   for (const f of files) {
-    const filePath = path.join(resultsDir, f);
-    const data = await loadJson(filePath);
+    const filePath = path.join(RESULTS_DIR, f);
+    const data = await readJson(filePath);
     const variantCount = data.results?.length ?? 0;
     if (variantCount < 15) {
       continue;
@@ -86,10 +81,6 @@ async function findLatestBenchmarkJson() {
 
   ranked.sort((a, b) => b.ts - a.ts);
   return ranked[0]?.filePath ?? null;
-}
-
-async function loadJson(file) {
-  return JSON.parse(await fs.readFile(file, 'utf8'));
 }
 
 function mergeResults(fullRun, gemmaRun) {
@@ -239,14 +230,28 @@ function buildMarkdown(run, results) {
 }
 
 async function main() {
-  const fullFile = await findLatestBenchmarkJson();
+  const { values } = parseArgs({
+    options: {
+      input: { type: 'string' },
+      output: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    strict: true,
+  });
+  if (values.help) {
+    console.log('Usage: node scripts/generate-leaderboard.mjs [--input file] [--output file]');
+    return;
+  }
+  const fullFile = values.input
+    ? path.resolve(ROOT_DIR, values.input)
+    : await findLatestBenchmarkJson();
 
   if (!fullFile) {
     console.error('No benchmark JSON found in results/');
     process.exit(1);
   }
 
-  const fullRun = await loadJson(fullFile);
+  const fullRun = await readJson(fullFile);
   fullRun.source_file = fullFile;
 
   let gemmaRun = null;
@@ -254,22 +259,22 @@ async function main() {
     (r) => r.model_id === 'onnx-community/embeddinggemma-300m-ONNX' && r.status === 'ok',
   );
 
-  if (!hasGemma) {
-    const allFiles = await fs.readdir(resultsDir);
+  if (!hasGemma && !values.input) {
+    const allFiles = await fs.readdir(RESULTS_DIR);
     const gemmaCandidates = allFiles
-      .filter((f) => f.startsWith('benchmark-') && f.endsWith('.json') && !f.includes('full'))
+      .filter((file) => /^benchmark-\d+\.json$/.test(file))
       .sort()
       .reverse();
 
     for (const f of gemmaCandidates) {
-      const data = await loadJson(path.join(resultsDir, f));
+      const data = await readJson(path.join(RESULTS_DIR, f));
       if (
         data.results?.some(
           (r) => r.model_id === 'onnx-community/embeddinggemma-300m-ONNX' && r.status === 'ok',
         )
       ) {
         gemmaRun = data;
-        fullRun.gemma_source = path.join(resultsDir, f);
+        fullRun.gemma_source = path.join(RESULTS_DIR, f);
         break;
       }
     }
@@ -277,6 +282,10 @@ async function main() {
 
   const results = filterActiveModels(mergeResults(fullRun, gemmaRun)).filter((r) => r.dtype !== 'fp16');
   const md = buildMarkdown(fullRun, results);
+  const outPath = values.output
+    ? path.resolve(ROOT_DIR, values.output)
+    : defaultOutPath;
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, md, 'utf8');
   console.log(`Wrote ${outPath} (${results.length} variants, ${results.filter((r) => r.status === 'ok').length} ok)`);
 }

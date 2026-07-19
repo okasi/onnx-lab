@@ -2,18 +2,17 @@
 /**
  * Smoke test: local ORT 1.27+ loads Gemma 4 mobile embed_tokens (2-bit GatherBlockQuantized).
  */
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
+import { projectPath } from '../lib/benchmark-support.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-
-const embedPath = path.join(
-  root,
+const embedPath = projectPath(
   '.cache/transformers-node/onnx-community/gemma-4-E2B-it-qat-mobile-ONNX/onnx/embed_tokens_q2f16.onnx',
 );
 
 async function main() {
+  await fs.access(embedPath).catch(() => {
+    throw new Error(`Missing cached model file: ${embedPath}`);
+  });
   let ort;
   try {
     ort = await import('onnxruntime-node');

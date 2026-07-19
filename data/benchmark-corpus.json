@@ -1,6 +1,5 @@
 {
   "version": 1,
-  "generated_at": "2026-06-17T13:04:55.117Z",
   "description": "Swedish and Turkish long-form documents for embedding benchmarks (mortgage, legal, medical).",
   "stats": {
     "document_count": 54,

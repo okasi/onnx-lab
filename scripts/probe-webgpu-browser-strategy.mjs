@@ -1,13 +1,9 @@
 #!/usr/bin/env node
-import http from 'node:http';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { ROOT_DIR } from '../lib/benchmark-support.mjs';
+import { runBrowserHtml } from '../lib/browser-runtime.mjs';
 
 const strategy = process.argv[2];
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const PORT = 8777;
 const MODEL_ID = 'onnx-community/embeddinggemma-300m-ONNX';
 const TEST_TEXT = 'Stockholm är huvudstaden i Sverige.';
 
@@ -164,16 +160,10 @@ async function main() {
     return;
   }
 
-  const server = http.createServer((_req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(htmlFor(spec));
-  });
-  await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
-
   const launchEnv = { ...process.env };
   if (spec.env === 'lavapipe') {
-    const base = path.join(root, '.cache/vulkan/extracted');
-    const icd = path.join(root, '.cache/vulkan/lvp_icd_abs.json');
+    const base = path.join(ROOT_DIR, '.cache/vulkan/extracted');
+    const icd = path.join(ROOT_DIR, '.cache/vulkan/lvp_icd_abs.json');
     const lib = path.join(base, 'usr/lib/x86_64-linux-gnu');
     launchEnv.VK_DRIVER_FILES = icd;
     launchEnv.VK_ICD_FILENAMES = icd;
@@ -181,30 +171,19 @@ async function main() {
   }
 
   try {
-    const browser = await chromium.launch({
-      channel: 'chrome',
-      headless: spec.headless,
-      args: spec.args,
-      env: launchEnv,
+    const { payload } = await runBrowserHtml(htmlFor(spec), {
+      timeoutMs: 600_000,
+      logElementId: 'log',
+      launchOptions: {
+        headless: spec.headless,
+        args: spec.args,
+        env: launchEnv,
+      },
     });
-    try {
-      const page = await browser.newPage();
-      page.setDefaultTimeout(600000);
-      await page.goto(`http://127.0.0.1:${PORT}/`);
-      await page.waitForFunction(() => window.__RESULT__, null, { timeout: 600000 });
-      const payload = await page.evaluate(() => ({
-        ...window.__RESULT__,
-        log: document.getElementById('log').textContent,
-      }));
-      Object.assign(result, payload);
-    } finally {
-      await browser.close();
-    }
+    Object.assign(result, payload);
   } catch (e) {
     result.status = 'error';
     result.error = (e?.message ?? String(e)).slice(0, 500);
-  } finally {
-    server.close();
   }
   console.log(JSON.stringify(result));
 }

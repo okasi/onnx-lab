@@ -82,8 +82,8 @@ Variants: 4
 
 - **78 tasks per variant** (v2 suite): 18 writing, 9 JSON, 18 MCQ, 9 reading, 9 instruction, 9 summarization, 6 classification.
 - **Languages:** English, Swedish, Turkish — topics: mortgage, legal, medical.
-- **Chat template** with greedy decode on CPU (bundled ORT via Transformers.js 4.2).
-- Rebuild suite: `npm run build:gemma4-quality-suite`
+- **Chat template** with greedy decode on CPU (Transformers.js 4.2 + pinned ORT 1.27).
+- Suite source: `data/gemma4-quality-suite.json`
 
 ## Known weak spots (v2)
 

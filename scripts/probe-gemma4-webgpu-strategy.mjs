@@ -1,25 +1,18 @@
 #!/usr/bin/env node
-/**
- * Run one Gemma 4 WebGPU browser strategy.
- * Usage: node probe-gemma4-webgpu-strategy.mjs <modelId> <strategyName>
- */
-import http from 'node:http';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
-import { GEMMA4_DEFAULT_MAX_NEW_TOKENS, GEMMA4_DEFAULT_PROMPT } from '../config/gemma4-models.mjs';
+import {
+  GEMMA4_DEFAULT_MAX_NEW_TOKENS,
+  GEMMA4_DEFAULT_PROMPT,
+} from '../config/gemma4-models.mjs';
+import {
+  classifyRuntimeError,
+} from '../lib/benchmark-support.mjs';
 import {
   GEMMA4_WEBGPU_STRATEGIES,
-  classifyGemma4Error,
-  gemma4BrowserHtml,
-  round,
-} from '../lib/gemma4-helpers.mjs';
+  runGemma4BrowserStrategy,
+} from '../lib/gemma4-webgpu.mjs';
 
 const modelId = process.argv[2];
 const strategy = process.argv[3];
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const PORT = 8781 + Math.floor(Math.random() * 100);
 
 async function main() {
   const spec = GEMMA4_WEBGPU_STRATEGIES[strategy];
@@ -35,7 +28,6 @@ async function main() {
     error: null,
     error_kind: null,
   };
-
   if (!modelId || !spec) {
     result.status = 'error';
     result.error = !modelId ? 'model id required' : `unknown strategy: ${strategy}`;
@@ -43,51 +35,31 @@ async function main() {
     return;
   }
 
-  const server = http.createServer((_req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(gemma4BrowserHtml(modelId, spec, GEMMA4_DEFAULT_PROMPT, GEMMA4_DEFAULT_MAX_NEW_TOKENS));
-  });
-  await new Promise((r) => server.listen(PORT, '127.0.0.1', r));
-
-  const wallStart = performance.now();
   try {
-    const browser = await chromium.launch({
-      channel: 'chrome',
-      headless: spec.headless ?? true,
-      args: spec.args ?? ['--enable-unsafe-webgpu', '--use-angle=default'],
+    const payload = await runGemma4BrowserStrategy({
+      modelId,
+      strategyName: strategy,
+      prompts: [{ id: 'smoke', prompt: GEMMA4_DEFAULT_PROMPT }],
+      maxNewTokens: GEMMA4_DEFAULT_MAX_NEW_TOKENS,
+      timeoutMs: 3_600_000,
     });
-    try {
-      const page = await browser.newPage();
-      page.setDefaultTimeout(3_600_000);
-      await page.goto(`http://127.0.0.1:${PORT}/`);
-      await page.waitForFunction(() => window.__RESULT__, null, { timeout: 3_600_000 });
-      const payload = await page.evaluate(() => window.__RESULT__);
-      if (payload.status !== 'ok') {
-        throw new Error(payload.error);
-      }
-      result.load_ms = payload.load_ms;
-      result.infer_ms = payload.infer_ms;
-      result.generated_text = payload.generated_text;
-      result.shader_f16 = payload.shader_f16;
-      result.dtype_used = payload.dtype_used;
-      result.status = 'ok';
-    } finally {
-      await browser.close();
-    }
-  } catch (e) {
-    const msg = (e?.message ?? String(e)).slice(0, 500);
-    result.error = msg;
-    result.error_kind = classifyGemma4Error(msg);
-    result.status = result.load_ms != null ? 'infer_error' : 'error';
-  } finally {
-    server.close();
+    result.load_ms = payload.load_ms;
+    result.infer_ms = payload.inference.mean_ms;
+    result.generated_text = payload.outputs[0]?.generated_text ?? null;
+    result.shader_f16 = payload.shader_f16;
+    result.dtype_used = payload.dtype_used;
+    result.total_ms = payload.total_ms;
+    result.status = 'ok';
+  } catch (error) {
+    const message = (error instanceof Error ? error.message : String(error)).slice(0, 500);
+    result.error = message;
+    result.error_kind = classifyRuntimeError(message);
+    result.status = result.load_ms == null ? 'error' : 'infer_error';
   }
-
-  result.total_ms = round(performance.now() - wallStart);
   console.log(JSON.stringify(result));
 }
 
-main().catch((e) => {
-  console.log(JSON.stringify({ status: 'error', error: e.message }));
+main().catch((error) => {
+  console.log(JSON.stringify({ status: 'error', error: error.message }));
   process.exit(1);
 });

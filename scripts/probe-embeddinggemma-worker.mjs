@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createFeatureExtractor } from '../lib/transformers-runtime.mjs';
+import { dispose } from '../lib/benchmark-support.mjs';
 
 const strategy = process.argv[2];
 const MODEL_ID = 'onnx-community/embeddinggemma-300m-ONNX';
@@ -9,7 +10,6 @@ const TEST_TEXT = 'Stockholm är huvudstaden i Sverige.';
 const BACKEND_MAP = {
   'wasm-asyncify': 'wasm',
   'wasm-jsep': 'wasm-jsep',
-  webgpu: 'webgpu',
   cpu: 'cpu',
 };
 
@@ -40,7 +40,7 @@ async function run() {
     result.dim = data.length;
     result.sample = data.slice(0, 3).map((x) => Number(x.toFixed(6)));
     result.status = 'ok';
-    await extractor.dispose();
+    await dispose(extractor);
   } catch (e) {
     result.status = 'error';
     result.error = (e?.message ?? String(e)).slice(0, 600);

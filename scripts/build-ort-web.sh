@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
-# Build onnxruntime-web WASM artifacts + JS bundles (ORT main / 1.28+).
+# Build onnxruntime-web WASM artifacts and JS bundles from ORT main.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORT_DIR="${ORT_DIR:-$ROOT/vendor/onnxruntime}"
 ORT_WEB_LOG="${ORT_WEB_LOG:-$ROOT/vendor/ort-web-build.log}"
-JOBS="${JOBS:-$(nproc)}"
 DIST="$ORT_DIR/js/web/dist"
 
-export CC="${CC:-gcc}"
-export CXX="${CXX:-g++}"
+detect_jobs() {
+  if command -v nproc >/dev/null 2>&1; then
+    nproc
+  elif command -v sysctl >/dev/null 2>&1; then
+    sysctl -n hw.ncpu
+  else
+    getconf _NPROCESSORS_ONLN 2>/dev/null || printf '4\n'
+  fi
+}
+
+JOBS="${JOBS:-$(detect_jobs)}"
+export CC="${CC:-cc}"
+export CXX="${CXX:-c++}"
 
 COMMON_FLAGS=(
   --config Release
@@ -31,7 +41,7 @@ setup_emsdk() {
     git -C "$ORT_DIR" submodule update --init --recursive cmake/external/emsdk
   fi
   pushd "$emsdk_root" >/dev/null
-  if [[ ! -d "$emsdk_root/emsdk/upstream" ]]; then
+  if [[ ! -d "$emsdk_root/upstream" ]]; then
     echo "==> Installing emsdk (this may take several minutes)..."
     ./emsdk install latest
   fi
@@ -82,7 +92,7 @@ main() {
   : >"$ORT_WEB_LOG"
   echo "==> ORT web build log: $ORT_WEB_LOG"
 
-  # Prevent /workspace/package.json type:module from breaking ORT's CommonJS wasm_post_build.js
+  # Prevent the parent ESM package from changing ORT's CommonJS build scripts.
   if [[ ! -f "$ORT_DIR/package.json" ]]; then
     printf '%s\n' '{"private":true,"type":"commonjs"}' >"$ORT_DIR/package.json"
   fi

@@ -1,69 +1,101 @@
 # onnx-lab
 
-ONNX model lab for **embeddings and LLMs** with **Transformers.js** across WASM, CPU, and WebGPU. Includes Swedish/Turkish embedding benchmarks, quant matrices, backend probes, and runtime notes.
+ONNX model experiments for multilingual embeddings and Gemma 4 generation with
+Transformers.js across CPU, Node WASM, and browser WebGPU.
 
-## Recommended pick: EmbeddingGemma 300M **q4f16**
-
-After benchmarking six multilingual ONNX embedding models across every practical quant, **EmbeddingGemma 300M q4f16** is our overall winner — not because it tops the raw quality leaderboard (GTE and BGE-M3 score slightly higher), but because it wins on the combination that actually matters when you ship embeddings in production.
-
-| Why it wins | EmbeddingGemma 300M q4f16 | Typical top scorer (e.g. GTE bnb4) |
-|-------------|---------------------------|-------------------------------------|
-| **Runs at all** | ✅ Stable on CPU; also works on **wasm-jsep** in Node | ✅ WASM, but… |
-| **q4f16 support** | ✅ Only model in the suite where **q4f16 loads and runs end-to-end** | ❌ GTE / Granite: FP16 graph fusion crash; BGE-M3: FP16 tensor mismatch |
-| **Memory** | **~585 MB** peak RSS | ~2–6.6 GB |
-| **Speed** | **~92 ms/doc**, **6 s** total (54 docs) | ~928–2945 ms/doc, 55 s–3 min |
-| **Quality** | **0.636** composite · XLing **0.816** · XL-R@5 **0.72** | 0.730 composite · XLing 0.953 · XL-R@5 0.96 |
-| **Retrieval** | R@5 **1.00** · R@3 **0.96** · R@1 **0.91** | Comparable on R@5; much heavier to get there |
-| **Model size** | ~168 MB weights (external `.onnx_data`) | Multi-GB working set at runtime |
-| **Dim** | 768 — compact vectors | 768–1024 |
-
-### What that means in practice
-
-1. **q4f16 that actually works.** We tested `q4f16` on every model. Four variants failed outright (Granite, GTE, BGE-M3, Jina). Qwen3 q4f16 runs but is far slower and weaker on cross-lingual retrieval. EmbeddingGemma q4f16 is the **only q4f16 quant that is fast, small, and reliable** in this benchmark.
-
-2. **Near-identical quality to other EmbeddingGemma quants.** q4f16 (0.6362) matches q4 (0.6361) and no_gather_q4 (0.6363) on composite score and retrieval — you do not sacrifice accuracy by choosing the mixed-precision quant.
-
-3. **Best speed–memory–quality trade-off in the Gemma family.** q4 is ~12% faster (80 ms/doc) but q4f16 still finishes the full 54-document corpus in **6 seconds** at **under 600 MB** RSS — orders of magnitude leaner than WASM runs of GTE/BGE that need 2–6 GB.
-
-4. **Strong Swedish/Turkish cross-lingual behavior.** XLing **0.816** and XL-R@5 **0.72** on paired SV↔TR documents are solid for a 300M model; same-topic R@5 hits **1.00**.
-
-5. **Deployable beyond CPU.** With the hardened runtime in this repo (JSEP WASM bundle + external data mount), q4f16 also runs on **wasm-jsep** in Node — important for browser-aligned ONNX paths and for environments without native ORT.
-
-6. **WebGPU path verified.** Aggressive probing (Chrome flags, ANGLE backends, lavapipe ICD, `forceCpuNodeNames`, dual webgpu+wasm EPs):
-   - **q4f16 on WebGPU** needs `shader-f16` (discrete GPU). Software Google adapter loads the graph but cannot run the f16 gather shader.
-   - **q4 on WebGPU works** in headless Chrome (~12 s/doc infer here) — use `dtype: 'q4'` or `webgpu_fallback_dtype: 'q4'` when f16 is unavailable.
-   - **Node wasm-jsep** remains the best path for q4f16 without discrete GPU.
-
-**Hub:** [onnx-community/embeddinggemma-300m-ONNX](https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/tree/main/onnx) · ONNX file: `model_q4f16.onnx` + `model_q4f16.onnx_data`
-
-Full numbers: **[LEADERBOARD.md](./LEADERBOARD.md)** (rank 12 by composite score; rank 1 by deployable q4f16 efficiency).
-
----
-
-## What's inside
-
-- **54 long documents** (Swedish + Turkish) on mortgages, legal, and medical topics
-- Benchmark runner for **6 Hugging Face ONNX embedding models** and their quantization variants
-- Backend probes: WASM-jsep, WebGPU, CPU fallback paths (`lib/transformers-runtime.mjs`)
-- Quant compatibility matrices (e.g. EmbeddingGemma on CPU + WebGPU)
-
-See **[AGENTS.md](./AGENTS.md)** for full instructions, model links, CLI flags, and agent workflow.
-
-## Commands
+## Setup
 
 ```bash
-npm install                  # pins ONNX Runtime 1.27.0 — see docs/ort-127-install.md
-npm run benchmark:quick      # fast smoke test
-npm run benchmark            # full matrix (slow; downloads models)
-npm run probe:embeddinggemma # Node backend matrix for Gemma q4f16
-npm run probe:webgpu         # Chrome WebGPU probe
-npm run probe:gemma-quants   # CPU + WebGPU quant matrix
-npm run probe:gemma4:quick   # Gemma 4 smoke: E2B q4 × 4 backends
-npm run probe:gemma4:hard    # WebGPU multi-strategy retry
-npm run benchmark:gemma4:quick  # E2B q4+q8 cpu+webgpu, 3 prompts
-npm run eval:gemma4:multimodal     # image + audio on E2B/E4B q4/q4f16 (CPU)
-npm run leaderboard:gemma4   # GEMMA4_LEADERBOARD.md from results/
-npm run leaderboard          # regenerate LEADERBOARD.md from results/
+npm install
+npm run check
+npm test
 ```
 
-Results are written to `results/benchmark-<timestamp>.json`.
+Model weights are downloaded on first use and cached under
+`.cache/transformers-node/`. Benchmark output is written to `results/`; both
+directories are gitignored.
+
+## Main commands
+
+```bash
+# Embeddings
+npm run benchmark:quick
+npm run benchmark
+npm run leaderboard
+npm run probe:embeddinggemma
+npm run probe:gemma-quants
+npm run probe:webgpu
+
+# Gemma 4 text generation
+npm run probe:gemma4:quick
+npm run benchmark:gemma4:quick
+npm run leaderboard:gemma4
+npm run eval:gemma4:quality
+
+# Gemma 4 image/audio
+npm run eval:gemma4:multimodal
+
+# Data and runtime verification
+npm run generate:corpus
+npm run verify:ort:q2f16
+npm run verify:ort:web:q2f16
+```
+
+Every expensive evaluator supports a small targeted run. Examples:
+
+```bash
+node scripts/benchmark.mjs \
+  --model onnx-community/embeddinggemma-300m-ONNX \
+  --dtype q4 --max-texts 1
+
+node scripts/benchmark-gemma4.mjs \
+  --model E2B-it --dtype q4 --backend cpu --max-prompts 1
+
+node scripts/eval-gemma4-quality.mjs \
+  --variant E2B-it:q4 --category mcq --max-tasks 1
+
+node scripts/eval-gemma4-multimodal.mjs \
+  --model E2B-it --dtype q4 --modality image --max-tasks 1
+```
+
+## Architecture
+
+- `config/` contains the embedding and Gemma 4 model registries.
+- `lib/transformers-runtime.mjs` creates CPU, WASM, and JSEP pipelines.
+- `lib/benchmark-support.mjs` owns paths, JSON I/O, subprocess isolation, timing, and memory measurement.
+- `lib/browser-runtime.mjs` runs generated probe pages in Chrome on an ephemeral local port.
+- `lib/metrics.mjs` computes embedding retrieval and cross-lingual quality.
+- `lib/gemma4-quality-scoring.mjs` contains deterministic quality scorers.
+- `scripts/*-variant.mjs` and `scripts/*-worker.mjs` isolate model loads so OOM failures do not kill matrix runs.
+- `data/` contains the committed benchmark corpus and evaluation suites.
+
+Embedding flow:
+
+```text
+benchmark.mjs -> benchmark-variant.mjs -> transformers-runtime
+              -> metrics -> results/*.json -> generate-leaderboard.mjs
+```
+
+Gemma 4 flow:
+
+```text
+matrix/eval command -> isolated worker -> CPU/WASM pipeline or Chrome WebGPU page
+                    -> results/*.json -> report generator
+```
+
+## Runtime notes
+
+The package lock pins ONNX Runtime 1.27.0 and overrides the versions requested by
+Transformers.js so Node and web runtimes use the same ORT release.
+
+Node WASM is initialized before Transformers.js is imported. `wasm-jsep` is
+required for quantized gather operators used by EmbeddingGemma and Gemma 4.
+Gemma 4 WASM sessions also mount external ONNX data shards from the model cache.
+
+WebGPU runs in the installed Chrome channel. Mixed-precision variants
+may require the `shader-f16` adapter feature; q4 is the practical fallback when
+that feature is unavailable.
+
+See [AGENTS.md](./AGENTS.md) for contribution guidance,
+[LEADERBOARD.md](./LEADERBOARD.md) for embedding results, and
+[GEMMA4_LEADERBOARD.md](./GEMMA4_LEADERBOARD.md) for text-generation results.

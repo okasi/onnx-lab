@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
-# Build ONNX Runtime (main / 1.28+) with Node.js bindings for 2-bit GatherBlockQuantized.
+# Build ONNX Runtime main with Node.js bindings.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ORT_DIR="${ORT_DIR:-$ROOT/vendor/onnxruntime}"
 ORT_LOG="${ORT_LOG:-$ROOT/vendor/ort-build.log}"
-JOBS="${JOBS:-$(nproc)}"
 
-export CC="${CC:-gcc}"
-export CXX="${CXX:-g++}"
+detect_jobs() {
+  if command -v nproc >/dev/null 2>&1; then
+    nproc
+  elif command -v sysctl >/dev/null 2>&1; then
+    sysctl -n hw.ncpu
+  else
+    getconf _NPROCESSORS_ONLN 2>/dev/null || printf '4\n'
+  fi
+}
+
+JOBS="${JOBS:-$(detect_jobs)}"
+export CC="${CC:-cc}"
+export CXX="${CXX:-c++}"
 
 echo "==> ORT source: $ORT_DIR"
 echo "==> Compiler: $CC / $CXX"
@@ -18,12 +28,12 @@ if ! command -v cmake >/dev/null; then
   exit 1
 fi
 
-if ! "$CXX" -x c++ - -o /tmp/ort-cxx-test <<< 'int main(){}' 2>/dev/null; then
-  echo "C++ linker failed — ensure g++ is default (not clang without libstdc++):" >&2
-  echo "  export CC=gcc CXX=g++" >&2
+LINK_TEST="$(mktemp "${TMPDIR:-/tmp}/ort-cxx-test.XXXXXX")"
+trap 'rm -f "$LINK_TEST"' EXIT
+if ! "$CXX" -x c++ - -o "$LINK_TEST" <<< 'int main(){}' 2>/dev/null; then
+  echo "C++ linker failed; set CC and CXX to a working toolchain." >&2
   exit 1
 fi
-rm -f /tmp/ort-cxx-test
 
 mkdir -p "$(dirname "$ORT_DIR")"
 
@@ -51,7 +61,9 @@ cd "$ORT_DIR/js" && npm ci
 cd "$ORT_DIR/js/common" && npm ci
 cd "$ORT_DIR/js/node" && ONNXRUNTIME_NODE_INSTALL=skip npm ci
 
-BINDING="$ORT_DIR/js/node/bin/napi-v6/linux/x64/onnxruntime_binding.node"
+PLATFORM="$(node -p 'process.platform')"
+ARCH="$(node -p 'process.arch')"
+BINDING="$ORT_DIR/js/node/bin/napi-v6/$PLATFORM/$ARCH/onnxruntime_binding.node"
 if [[ ! -f "$BINDING" ]]; then
   echo "Build finished but binding not found: $BINDING" >&2
   exit 1

@@ -1,95 +1,162 @@
 #!/usr/bin/env node
-/**
- * Matrix test: Gemma 4 ONNX LLMs × quants × backends (CPU, wasm-jsep, wasm, WebGPU).
- *
- * Flags:
- *   --quick          E2B-it only, q4 quant, all backends
- *   --model <slug>   Filter to one model slug (e.g. E2B-it, E4B-qat-mobile)
- *   --dtype <list>   Comma-separated quants
- *   --backend <list> Comma-separated backends
- */
-import { spawn } from 'node:child_process';
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 import {
   GEMMA4_BACKENDS,
   GEMMA4_MODELS,
   findGemma4Model,
 } from '../config/gemma4-models.mjs';
+import {
+  RESULTS_DIR,
+  SCRIPTS_DIR,
+  parseCsv,
+  runJsonWorker,
+  writeJson,
+} from '../lib/benchmark-support.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const worker = path.join(__dirname, 'probe-gemma4-worker.mjs');
+const workerScript = path.join(SCRIPTS_DIR, 'probe-gemma4-worker.mjs');
 
-function argValue(flag) {
-  const i = process.argv.indexOf(flag);
-  if (i === -1) return null;
-  return process.argv[i + 1] ?? null;
+function parseCli() {
+  const { values } = parseArgs({
+    options: {
+      quick: { type: 'boolean' },
+      model: { type: 'string' },
+      dtype: { type: 'string' },
+      backend: { type: 'string' },
+      'skip-fp32': { type: 'boolean' },
+      hard: { type: 'boolean' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    strict: true,
+  });
+  if (values.help) return null;
+  const backends = parseCsv(values.backend) ?? GEMMA4_BACKENDS;
+  const unknownBackends = backends.filter((backend) => !GEMMA4_BACKENDS.includes(backend));
+  if (unknownBackends.length) {
+    throw new Error(`Unknown backend(s): ${unknownBackends.join(', ')}`);
+  }
+  return {
+    quick: values.quick ?? false,
+    models: parseCsv(values.model),
+    dtypes: parseCsv(values.dtype),
+    backends,
+    skipFp32: values['skip-fp32'] ?? false,
+    hard: values.hard ?? false,
+  };
 }
 
-function hasFlag(flag) {
-  return process.argv.includes(flag);
+function printHelp() {
+  console.log(`Usage: node scripts/probe-gemma4-matrix.mjs [options]
+
+Options:
+  --quick             E2B-it q4 on all backends
+  --model slug[,slug] Filter models
+  --dtype d[,d]       Filter quants
+  --backend b[,b]     Filter backends
+  --skip-fp32         Exclude fp32
+  --hard              Try extra WebGPU strategies
+  -h, --help          Show this help
+`);
 }
 
-function buildMatrix() {
-  if (hasFlag('--quick')) {
-    const model = findGemma4Model('E2B-it');
-    return GEMMA4_BACKENDS.map((backend) => ({ model, dtype: 'q4', backend }));
-  }
-
-  const modelFilter = argValue('--model');
-  const dtypeFilter = parseList(argValue('--dtype'));
-  const backendFilter = parseList(argValue('--backend')) ?? GEMMA4_BACKENDS;
-  const skipFp32 = hasFlag('--skip-fp32');
-
-  let models = GEMMA4_MODELS;
-  if (modelFilter) {
-    const m = findGemma4Model(modelFilter);
-    if (!m) {
-      throw new Error(`Unknown model filter: ${modelFilter}`);
-    }
-    models = [m];
-  }
-
+function buildMatrix(args) {
+  const requestedModels = args.models ?? (args.quick ? ['E2B-it'] : null);
+  const models = requestedModels
+    ? requestedModels.map((slug) => {
+        const model = findGemma4Model(slug);
+        if (!model) throw new Error(`Unknown model: ${slug}`);
+        return model;
+      })
+    : GEMMA4_MODELS;
   const cells = [];
   for (const model of models) {
-    let quants = dtypeFilter ?? model.quants;
-    if (skipFp32) {
-      quants = quants.filter((d) => d !== 'fp32');
-    }
-    for (const dtype of quants) {
-      for (const backend of backendFilter) {
+    let dtypes = (args.dtypes ?? (args.quick ? ['q4'] : model.quants))
+      .filter((dtype) => model.quants.includes(dtype));
+    if (args.skipFp32) dtypes = dtypes.filter((dtype) => dtype !== 'fp32');
+    for (const dtype of dtypes) {
+      for (const backend of args.backends) {
         cells.push({ model, dtype, backend });
       }
     }
   }
+  if (!cells.length) throw new Error('No compatible probe cells selected');
   return cells;
 }
 
-const HARD_MODE = hasFlag('--hard');
+async function runWorker(modelId, backend, dtype, hard) {
+  const args = [modelId, backend, dtype];
+  if (hard && backend === 'webgpu') args.push('--hard');
+  return (await runJsonWorker(workerScript, args, {
+    resultFile: false,
+    failureStatus: 'load_error',
+  })).result;
+}
 
-function parseList(value) {
-  return value?.split(',').map((s) => s.trim()).filter(Boolean) ?? null;
+function summarize(results) {
+  const summary = { ok: 0, infer_error: 0, load_error: 0, by_backend: {}, by_dtype: {} };
+  for (const result of results) {
+    summary[result.status] = (summary[result.status] ?? 0) + 1;
+    summary.by_backend[result.backend] ??= {};
+    summary.by_dtype[result.dtype] ??= {};
+    summary.by_backend[result.backend][result.status] =
+      (summary.by_backend[result.backend][result.status] ?? 0) + 1;
+    summary.by_dtype[result.dtype][result.status] =
+      (summary.by_dtype[result.dtype][result.status] ?? 0) + 1;
+  }
+  return summary;
+}
+
+function cell(result) {
+  if (!result) return '-'.padEnd(11);
+  if (result.status === 'ok') return 'ok'.padEnd(11);
+  if (result.status === 'infer_error') return 'infer!'.padEnd(11);
+  return 'fail'.padEnd(11);
+}
+
+function printSummary(report) {
+  const models = [...new Set(report.results.map((result) => result.model_slug))];
+  console.log('\n--- Matrix ---');
+  for (const slug of models) {
+    console.log(`\n${slug}`);
+    console.log(`Quant     ${GEMMA4_BACKENDS.map((backend) => backend.padEnd(11)).join('')}`);
+    const dtypes = [...new Set(
+      report.results.filter((result) => result.model_slug === slug)
+        .map((result) => result.dtype),
+    )];
+    for (const dtype of dtypes) {
+      const cells = GEMMA4_BACKENDS.map((backend) =>
+        cell(report.results.find((result) =>
+          result.model_slug === slug
+          && result.dtype === dtype
+          && result.backend === backend)));
+      console.log(`${dtype.padEnd(8)}  ${cells.join('  ')}`);
+    }
+  }
+  console.log(
+    `\nTotals: ${report.summary.ok} ok, `
+    + `${report.summary.infer_error} infer errors, ${report.summary.load_error} load errors`,
+  );
 }
 
 async function main() {
-  const cells = buildMatrix();
-  console.log(`Gemma 4 probe matrix — ${cells.length} cell(s)\n`);
-
+  const args = parseCli();
+  if (!args) {
+    printHelp();
+    return;
+  }
+  const cells = buildMatrix(args);
+  console.log(`Gemma 4 probe matrix - ${cells.length} cell(s)\n`);
   const results = [];
   for (const { model, dtype, backend } of cells) {
     const label = `${model.slug.padEnd(14)} ${dtype.padEnd(6)} ${backend.padEnd(9)}`;
-    process.stdout.write(`→ ${label} … `);
-    const r = await runWorker(model.id, backend, dtype, HARD_MODE);
-    results.push({ ...r, model_slug: model.slug, model_name: model.name });
-    if (r.status === 'ok') {
-      const text = (r.generated_text ?? '').replace(/\s+/g, ' ').slice(0, 48);
-      console.log(`ok  load=${r.load_ms}ms infer=${r.infer_ms}ms  "${text}"`);
-    } else if (r.status === 'infer_error') {
-      console.log(`infer fail (${r.error_kind ?? 'error'}): ${(r.error ?? '').slice(0, 56)}`);
+    process.stdout.write(`${label} ... `);
+    const result = await runWorker(model.id, backend, dtype, args.hard);
+    results.push({ ...result, model_slug: model.slug, model_name: model.name });
+    if (result.status === 'ok') {
+      const text = (result.generated_text ?? '').replace(/\s+/g, ' ').slice(0, 48);
+      console.log(`ok load=${result.load_ms}ms infer=${result.infer_ms}ms "${text}"`);
     } else {
-      console.log(`load fail: ${(r.error ?? '').slice(0, 70)}`);
+      console.log(`${result.status}: ${(result.error ?? '').slice(0, 70)}`);
     }
   }
 
@@ -99,91 +166,13 @@ async function main() {
     results,
     summary: summarize(results),
   };
-
-  const outPath = path.join(root, 'results', `probe-gemma4-matrix-${Date.now()}.json`);
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, JSON.stringify(report, null, 2));
-
+  const outPath = path.join(RESULTS_DIR, `probe-gemma4-matrix-${Date.now()}.json`);
+  await writeJson(outPath, report);
   printSummary(report);
   console.log(`\nWrote ${outPath}`);
 }
 
-function runWorker(modelId, backend, dtype, hard = false) {
-  return new Promise((resolve) => {
-    const workerArgs = ['--expose-gc', worker, modelId, backend, dtype];
-    if (hard && backend === 'webgpu') workerArgs.push('--hard');
-    const child = spawn(process.execPath, workerArgs, {
-      cwd: root,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (d) => { stdout += d; });
-    child.stderr.on('data', (d) => { stderr += d; });
-    child.on('close', () => {
-      try {
-        resolve(JSON.parse(stdout.trim()));
-      } catch {
-        resolve({
-          model_id: modelId,
-          backend,
-          dtype,
-          status: 'load_error',
-          error: (stderr.trim() || stdout.trim() || 'parse error').slice(0, 400),
-        });
-      }
-    });
-  });
-}
-
-function summarize(results) {
-  const byBackend = {};
-  const byDtype = {};
-  for (const r of results) {
-    byBackend[r.backend] ??= { ok: 0, infer_error: 0, load_error: 0 };
-    byDtype[r.dtype] ??= { ok: 0, infer_error: 0, load_error: 0 };
-    byBackend[r.backend][r.status] = (byBackend[r.backend][r.status] ?? 0) + 1;
-    byDtype[r.dtype][r.status] = (byDtype[r.dtype][r.status] ?? 0) + 1;
-  }
-  return {
-    ok: results.filter((r) => r.status === 'ok').length,
-    infer_error: results.filter((r) => r.status === 'infer_error').length,
-    load_error: results.filter((r) => r.status === 'load_error').length,
-    by_backend: byBackend,
-    by_dtype: byDtype,
-  };
-}
-
-function printSummary(report) {
-  const models = [...new Set(report.results.map((r) => r.model_slug))];
-  console.log('\n--- Matrix ---');
-  for (const slug of models) {
-    console.log(`\n${slug}`);
-    console.log('Quant     ' + GEMMA4_BACKENDS.map((b) => b.padEnd(11)).join(''));
-    const rows = [...new Set(report.results.filter((r) => r.model_slug === slug).map((r) => r.dtype))];
-    for (const dtype of rows) {
-      const cells = GEMMA4_BACKENDS.map((backend) => {
-        const r = report.results.find(
-          (x) => x.model_slug === slug && x.dtype === dtype && x.backend === backend,
-        );
-        return cell(r);
-      });
-      console.log(`${dtype.padEnd(8)}  ${cells.join('  ')}`);
-    }
-  }
-  console.log(
-    `\nTotals: ${report.summary.ok} ok, ${report.summary.infer_error} infer errors, ${report.summary.load_error} load errors`,
-  );
-}
-
-function cell(r) {
-  if (!r) return '—'.padEnd(11);
-  if (r.status === 'ok') return 'ok'.padEnd(11);
-  if (r.status === 'infer_error') return 'infer!'.padEnd(11);
-  return 'fail'.padEnd(11);
-}
-
-main().catch((e) => {
-  console.error(e);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });

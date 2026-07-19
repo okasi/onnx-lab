@@ -4,20 +4,38 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
+import { parseArgs } from 'node:util';
+import {
+  ROOT_DIR,
+  RESULTS_DIR,
+  parseCsv,
+  projectPath,
+  readJson,
+} from '../lib/benchmark-support.mjs';
 
 function variantKey(r) {
   return `${r.model_id ?? r.model_slug}:${r.dtype}:${r.backend_requested ?? r.backend_used}`;
 }
 
 async function main() {
-  const resultsDir = path.join(root, 'results');
-  const files = (await fs.readdir(resultsDir))
-    .filter((f) => f.startsWith('benchmark-gemma4-') && f.endsWith('.json'))
-    .sort();
+  const { values } = parseArgs({
+    options: {
+      input: { type: 'string' },
+      output: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    strict: true,
+  });
+  if (values.help) {
+    console.log('Usage: node scripts/generate-gemma4-leaderboard.mjs [--input a.json,b.json] [--output file]');
+    return;
+  }
+  const files = values.input
+    ? parseCsv(values.input).map((file) => path.resolve(ROOT_DIR, file))
+    : (await fs.readdir(RESULTS_DIR))
+        .filter((file) => file.startsWith('benchmark-gemma4-') && file.endsWith('.json'))
+        .sort()
+        .map((file) => path.join(RESULTS_DIR, file));
 
   if (!files.length) {
     console.error('No benchmark-gemma4-*.json files found');
@@ -26,8 +44,9 @@ async function main() {
 
   const merged = new Map();
   const runs = [];
-  for (const file of files) {
-    const run = JSON.parse(await fs.readFile(path.join(resultsDir, file), 'utf8'));
+  for (const filePath of files) {
+    const run = await readJson(filePath);
+    const file = path.basename(filePath);
     runs.push({ file, tested_at: run.tested_at, count: run.results?.length ?? 0 });
     for (const r of run.results ?? []) {
       if (!r.model_id && !r.model_slug) continue;
@@ -64,26 +83,11 @@ async function main() {
   }
 
   if (bySpeed.length) {
-    md += `\n## Fastest CPU / working backends (mean ms/prompt)\n\n`;
+    md += `\n## Fastest working variants\n\n`;
     for (const r of bySpeed.slice(0, 8)) {
       md += `- **${r.model_slug} ${r.dtype} ${r.backend_used}** — ${r.inference.mean_ms} ms/prompt, ${r.tokens_per_sec} tok/s, RSS ${r.memory?.peak_rss_mb ?? '?'} MB\n`;
     }
   }
-
-  md += `\n## Backend compatibility (this environment)\n\n`;
-  md += `| Backend | E2B q4 | E2B q4f16 | E4B q4 | Mobile q2f16 |\n`;
-  md += `|---------|--------|-----------|--------|---------------|\n`;
-  const cell = (slug, dtype, backend) => {
-    const r = rows.find((x) => x.model_slug === slug && x.dtype === dtype && (x.backend_requested ?? x.backend_used) === backend);
-    if (!r) return '—';
-    if (r.status === 'ok') return 'ok';
-    if (r.status === 'infer_error') return 'load only';
-    return r.error_kind ?? 'fail';
-  };
-  md += `| **cpu** | ${cell('E2B-it', 'q4', 'cpu')} | ${cell('E2B-it', 'q4f16', 'cpu')} | ${cell('E4B-it', 'q4', 'cpu')} | ${cell('E2B-qat-mobile', 'q2f16', 'cpu')} |\n`;
-  md += `| **wasm-jsep** | ${cell('E2B-it', 'q4', 'wasm-jsep')} | ${cell('E2B-it', 'q4f16', 'wasm-jsep')} | — | — |\n`;
-  md += `| **wasm** | ${cell('E2B-it', 'q4', 'wasm')} | — | — | — |\n`;
-  md += `| **webgpu** | — | — | — | — |\n`;
 
   md += `\n## Failed / partial variants\n\n`;
   const failed = rows.filter((r) => r.status !== 'ok');
@@ -102,7 +106,10 @@ async function main() {
     md += `- \`${r.file}\` (${r.tested_at ?? '?'}, ${r.count} variants)\n`;
   }
 
-  const outPath = path.join(root, 'GEMMA4_LEADERBOARD.md');
+  const outPath = values.output
+    ? path.resolve(ROOT_DIR, values.output)
+    : projectPath('GEMMA4_LEADERBOARD.md');
+  await fs.mkdir(path.dirname(outPath), { recursive: true });
   await fs.writeFile(outPath, md);
   console.log(`Wrote ${outPath} (${rows.length} variants)`);
 }

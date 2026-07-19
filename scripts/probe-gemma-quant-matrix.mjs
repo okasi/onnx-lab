@@ -1,121 +1,63 @@
 #!/usr/bin/env node
-/**
- * Matrix test: all EmbeddingGemma quants on CPU + WebGPU.
- */
-import { spawn } from 'node:child_process';
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
+import {
+  RESULTS_DIR,
+  SCRIPTS_DIR,
+  positiveInteger,
+  round,
+  runJsonWorker,
+  writeJson,
+} from '../lib/benchmark-support.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, '..');
-const worker = path.join(__dirname, 'probe-gemma-quant-worker.mjs');
-
+const workerScript = path.join(SCRIPTS_DIR, 'probe-gemma-quant-worker.mjs');
 const QUANTS = ['bnb4', 'int8', 'q4', 'q4f16', 'q8', 'uint8', 'fp32', 'fp16'];
-const SMOKE_DOCS = 1;
-const FULL_DOCS = Number(process.argv.includes('--full')
-  ? process.argv[process.argv.indexOf('--full') + 1] || 5
-  : 0);
 
-async function main() {
-  const docCount = FULL_DOCS || SMOKE_DOCS;
-  console.log(`EmbeddingGemma quant matrix — CPU + WebGPU (${docCount} doc(s) each)\n`);
-
-  const results = [];
-  for (const dtype of QUANTS) {
-    for (const backend of ['cpu', 'webgpu']) {
-      process.stdout.write(`→ ${dtype.padEnd(6)} ${backend.padEnd(7)} … `);
-      const r = await runWorker(backend, dtype, docCount);
-      results.push(r);
-      if (r.status === 'ok') {
-        console.log(`ok  load=${r.load_ms}ms infer=${r.infer_ms}ms/doc${r.quality != null ? ` q=${r.quality}` : ''}`);
-      } else {
-        console.log(`fail: ${(r.error ?? '').slice(0, 70)}`);
-      }
-    }
-  }
-
-  const bothOk = QUANTS.filter((d) => {
-    const cpu = results.find((r) => r.dtype === d && r.backend === 'cpu');
-    const gpu = results.find((r) => r.dtype === d && r.backend === 'webgpu');
-    return cpu?.status === 'ok' && gpu?.status === 'ok';
+function parseCli() {
+  const { values } = parseArgs({
+    options: {
+      full: { type: 'string' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    strict: true,
   });
-
-  const report = {
-    tested_at: new Date().toISOString(),
-    documents_per_run: docCount,
-    quants: QUANTS,
-    results,
-    works_on_both: bothOk,
-    summary: buildSummary(results, bothOk),
+  if (values.help) return null;
+  return {
+    documentCount: positiveInteger(values.full ?? '1', '--full'),
+    rerunQuality: !values.full,
   };
-
-  const outPath = path.join(root, 'results', `probe-gemma-quant-matrix-${Date.now()}.json`);
-  await fs.mkdir(path.dirname(outPath), { recursive: true });
-  await fs.writeFile(outPath, JSON.stringify(report, null, 2));
-
-  printTable(report);
-  console.log(`\nWrote ${outPath}`);
-
-  if (!FULL_DOCS && bothOk.length) {
-    console.log(`\nRe-running ${bothOk.length} dual-backend quants with 5 docs for quality…`);
-    const fullResults = [];
-    for (const dtype of bothOk) {
-      for (const backend of ['cpu', 'webgpu']) {
-        process.stdout.write(`→ ${dtype} ${backend} (5 docs) … `);
-        const r = await runWorker(backend, dtype, 5);
-        fullResults.push(r);
-        console.log(r.status === 'ok' ? `ok q=${r.quality} XL-R@5 cpu/gpu n/a` : `fail`);
-      }
-    }
-    report.full_quality_runs = fullResults;
-    report.full_summary = buildDualComparison(fullResults);
-    await fs.writeFile(outPath, JSON.stringify(report, null, 2));
-    printDualTable(report.full_summary);
-  }
 }
 
-function runWorker(backend, dtype, maxTexts) {
-  return new Promise((resolve) => {
-    const child = spawn(process.execPath, ['--expose-gc', worker, backend, dtype, String(maxTexts)], {
-      cwd: root,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (d) => { stdout += d; });
-    child.stderr.on('data', (d) => { stderr += d; });
-    child.on('close', () => {
-      try {
-        resolve(JSON.parse(stdout.trim()));
-      } catch {
-        resolve({ backend, dtype, status: 'error', error: stderr.trim() || stdout.trim() || 'parse error' });
-      }
-    });
-  });
+async function runWorker(backend, dtype, maxTexts) {
+  return (await runJsonWorker(
+    workerScript,
+    [backend, dtype, String(maxTexts)],
+    { resultFile: false },
+  )).result;
 }
 
 function buildSummary(results, bothOk) {
-  const cpuOnly = [];
-  const webgpuOnly = [];
-  const neither = [];
-  for (const d of QUANTS) {
-    const cpu = results.find((r) => r.dtype === d && r.backend === 'cpu')?.status === 'ok';
-    const gpu = results.find((r) => r.dtype === d && r.backend === 'webgpu')?.status === 'ok';
+  const summary = { bothOk, cpuOnly: [], webgpuOnly: [], neither: [] };
+  for (const dtype of QUANTS) {
+    const cpu = results.find((result) =>
+      result.dtype === dtype && result.backend === 'cpu')?.status === 'ok';
+    const gpu = results.find((result) =>
+      result.dtype === dtype && result.backend === 'webgpu')?.status === 'ok';
     if (cpu && gpu) continue;
-    if (cpu) cpuOnly.push(d);
-    else if (gpu) webgpuOnly.push(d);
-    else neither.push(d);
+    if (cpu) summary.cpuOnly.push(dtype);
+    else if (gpu) summary.webgpuOnly.push(dtype);
+    else summary.neither.push(dtype);
   }
-  return { bothOk, cpuOnly, webgpuOnly, neither };
+  return summary;
 }
 
-function buildDualComparison(fullResults) {
+function buildDualComparison(results) {
   const rows = [];
-  const dtypes = [...new Set(fullResults.map((r) => r.dtype))];
-  for (const dtype of dtypes) {
-    const cpu = fullResults.find((r) => r.dtype === dtype && r.backend === 'cpu');
-    const gpu = fullResults.find((r) => r.dtype === dtype && r.backend === 'webgpu');
+  for (const dtype of [...new Set(results.map((result) => result.dtype))]) {
+    const cpu = results.find((result) =>
+      result.dtype === dtype && result.backend === 'cpu');
+    const gpu = results.find((result) =>
+      result.dtype === dtype && result.backend === 'webgpu');
     if (cpu?.status !== 'ok' || gpu?.status !== 'ok') continue;
     rows.push({
       dtype,
@@ -132,42 +74,91 @@ function buildDualComparison(fullResults) {
   return rows;
 }
 
-function round(n, d) {
-  return Number(Number(n).toFixed(d));
-}
-
 function printTable(report) {
   console.log('\n--- Matrix ---');
   console.log('Quant     CPU          WebGPU');
   console.log('--------  -----------  -----------');
-  for (const d of QUANTS) {
-    const cpu = report.results.find((r) => r.dtype === d && r.backend === 'cpu');
-    const gpu = report.results.find((r) => r.dtype === d && r.backend === 'webgpu');
-    console.log(
-      `${d.padEnd(8)}  ${cell(cpu).padEnd(11)}  ${cell(gpu)}`,
-    );
+  for (const dtype of QUANTS) {
+    const cpu = report.results.find((result) =>
+      result.dtype === dtype && result.backend === 'cpu');
+    const gpu = report.results.find((result) =>
+      result.dtype === dtype && result.backend === 'webgpu');
+    const cell = (result) => result?.status === 'ok' ? 'ok' : 'fail';
+    console.log(`${dtype.padEnd(8)}  ${cell(cpu).padEnd(11)}  ${cell(gpu)}`);
   }
-  console.log(`\nWorks on BOTH: ${report.works_on_both.join(', ') || 'none'}`);
-}
-
-function cell(r) {
-  if (!r) return '—';
-  return r.status === 'ok' ? 'ok' : 'fail';
+  console.log(`\nWorks on both: ${report.works_on_both.join(', ') || 'none'}`);
 }
 
 function printDualTable(rows) {
-  if (!rows?.length) return;
+  if (!rows.length) return;
   console.log('\n--- Dual-backend quants (5 docs) ---');
   console.log('Quant   CPU ms  GPU ms  Ratio  CPU Q  GPU Q  CPU XL-R@5  GPU XL-R@5  RSS MB');
-  for (const r of rows) {
+  for (const row of rows) {
     console.log(
-      `${r.dtype.padEnd(6)}  ${String(r.cpu_infer_ms).padEnd(6)}  ${String(r.webgpu_infer_ms).padEnd(6)}  ${String(r.speed_ratio).padEnd(5)}  ` +
-        `${r.cpu_quality}  ${r.webgpu_quality}  ${r.cpu_xl_r5}       ${r.webgpu_xl_r5}        ${r.cpu_rss_mb ?? '—'}`,
+      `${row.dtype.padEnd(6)}  ${String(row.cpu_infer_ms).padEnd(6)}  `
+      + `${String(row.webgpu_infer_ms).padEnd(6)}  ${String(row.speed_ratio).padEnd(5)}  `
+      + `${row.cpu_quality}  ${row.webgpu_quality}  ${row.cpu_xl_r5}       `
+      + `${row.webgpu_xl_r5}        ${row.cpu_rss_mb ?? '-'}`,
     );
   }
 }
 
-main().catch((e) => {
-  console.error(e);
+async function main() {
+  const args = parseCli();
+  if (!args) {
+    console.log('Usage: node scripts/probe-gemma-quant-matrix.mjs [--full N]');
+    return;
+  }
+  console.log(
+    `EmbeddingGemma quant matrix - CPU + WebGPU (${args.documentCount} doc(s) each)\n`,
+  );
+  const results = [];
+  for (const dtype of QUANTS) {
+    for (const backend of ['cpu', 'webgpu']) {
+      process.stdout.write(`${dtype.padEnd(6)} ${backend.padEnd(7)} ... `);
+      const result = await runWorker(backend, dtype, args.documentCount);
+      results.push(result);
+      console.log(
+        result.status === 'ok'
+          ? `ok load=${result.load_ms}ms infer=${result.infer_ms}ms/doc`
+          : `failed: ${(result.error ?? '').slice(0, 70)}`,
+      );
+    }
+  }
+  const bothOk = QUANTS.filter((dtype) =>
+    ['cpu', 'webgpu'].every((backend) =>
+      results.find((result) =>
+        result.dtype === dtype && result.backend === backend)?.status === 'ok'));
+  const report = {
+    tested_at: new Date().toISOString(),
+    documents_per_run: args.documentCount,
+    quants: QUANTS,
+    results,
+    works_on_both: bothOk,
+    summary: buildSummary(results, bothOk),
+  };
+  const outPath = path.join(RESULTS_DIR, `probe-gemma-quant-matrix-${Date.now()}.json`);
+  printTable(report);
+
+  if (args.rerunQuality && bothOk.length) {
+    console.log(`\nRe-running ${bothOk.length} dual-backend quants with 5 docs...`);
+    report.full_quality_runs = [];
+    for (const dtype of bothOk) {
+      for (const backend of ['cpu', 'webgpu']) {
+        process.stdout.write(`${dtype} ${backend} ... `);
+        const result = await runWorker(backend, dtype, 5);
+        report.full_quality_runs.push(result);
+        console.log(result.status === 'ok' ? `ok quality=${result.quality}` : 'failed');
+      }
+    }
+    report.full_summary = buildDualComparison(report.full_quality_runs);
+    printDualTable(report.full_summary);
+  }
+  await writeJson(outPath, report);
+  console.log(`\nWrote ${outPath}`);
+}
+
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });
